@@ -128,6 +128,7 @@ console.log(`Added ${Object.keys(toFormats).length} formats to output format sel
 
 // Set default input value
 inputText.value = defaultInput
+updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
 
 
 
@@ -433,5 +434,3 @@ for (const inputFormat of Object.keys(fromFormats)) {
 
 // Do a conversion on load in case the user has a value in the input field and they are just refreshing the page
 convertEvent()
-
-console.log(CryptoJS.enc.Utf8.parse('asd'))

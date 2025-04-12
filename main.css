@@ -24,11 +24,19 @@ html, body {
     box-shadow: 0 0 5px red !important;
 }
 h2 {
-    color: #359dc1;
+    color: #007BFF;
     font-size: 24px;
-    margin-bottom: 10px;
     font-family: monospace;
     font-weight: bold;
+}
+.mirror {
+    transform: scaleY(-1);
+    opacity: 0.5;
+    filter: blur(1.5px);
+    margin-top: -10px;
+    user-select: none;
+    pointer-events: none;
+    color: #FF8400;
 }
 #output-size {
     font-size: 14px;

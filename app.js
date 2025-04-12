@@ -15,6 +15,17 @@ moveButton = document.getElementById("move-button")
 outputSizeLabel = document.getElementById("output-size")
 console.log("Loaded controls.")
 
+const casingSelector = document.getElementById("casing-selector")
+const casingOptions = document.querySelectorAll(".casing-option")
+
+casingOptions.forEach(option => {
+    option.addEventListener("click", () => {
+        casingOptions.forEach(opt => opt.classList.remove("active"))
+        option.classList.add("active")
+        convertEvent()
+    })
+})
+
 fromFormats = {
     'text': {
         'name': 'Text',
@@ -206,7 +217,17 @@ function updateInputValidation() {
 function updateOutput(output) {
     const outputSize = output.length
     outputSizeLabel.innerText = `[${outputSize}]`
-    outputText.value = output
+    outputText.value = applyCasing(output)
+}
+
+function applyCasing(output) {
+    const activeCasing = document.querySelector(".casing-option.active").dataset.casing
+    if (activeCasing === "uppercase") {
+        return output.toUpperCase()
+    } else if (activeCasing === "lowercase") {
+        return output.toLowerCase()
+    }
+    return output
 }
 
 function convertEvent() {
@@ -219,11 +240,12 @@ function convertEvent() {
     }
 
     if (fromFormat == toFormat) {
-        outputText.value = input
+        updateOutput(input)
         return
     }
 
-    updateOutput(converters[fromFormat][toFormat](input))
+    const convertedOutput = converters[fromFormat][toFormat](input)
+    updateOutput(convertedOutput)
 }
 
 converters = {

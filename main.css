@@ -43,3 +43,6 @@ h2 {
     color: #666;
     font-weight: lighter;
 }
+#credit-link{
+    text-decoration: none;
+}

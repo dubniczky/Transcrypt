@@ -1,3 +1,9 @@
+// Set defaults
+const defaultInputFormat = 'text'
+const defaultOutputFormat = 'hex'
+const defaultInput = ''
+
+// Load controls
 fromFormatSelector = document.getElementById("from-format")
 toFormatSelector = document.getElementById("to-format")
 inputText = document.getElementById("input-text")
@@ -82,6 +88,11 @@ toFormats = {
     },
 }
 
+// Load query prams
+const urlParams = new URLSearchParams(window.location.search)
+inputFormat = urlParams.get('from')
+outputFormat = urlParams.get('to')
+
 
 // Add formats to the selector
 for (const [key, value] of Object.entries(fromFormats)) {
@@ -90,25 +101,45 @@ for (const [key, value] of Object.entries(fromFormats)) {
     option.text = value.name
     fromFormatSelector.appendChild(option)
 }
-fromFormatSelector.value = 'text'
+if (inputFormat != null && inputFormat in fromFormats) {
+    fromFormatSelector.value = inputFormat
+    console.log(`Input format set to ${inputFormat} from query params`)
+}
+else {
+    fromFormatSelector.value = defaultInputFormat
+}
+
 for (const [key, value] of Object.entries(toFormats)) {
     option = document.createElement("option")
     option.value = key
     option.text = value.name
     toFormatSelector.appendChild(option)
 }
-toFormatSelector.value = 'hex'
+if (outputFormat != null && outputFormat in toFormats) {
+    toFormatSelector.value = outputFormat
+    console.log(`Output format set to ${outputFormat} from query params`)
+}
+else {
+    toFormatSelector.value = defaultOutputFormat
+}
+
 console.log(`Added ${Object.keys(fromFormats).length} formats to input format selector.`)
 console.log(`Added ${Object.keys(toFormats).length} formats to output format selector.`)
+
+// Set default input value
+inputText.value = defaultInput
+
 
 
 // Add event listeners
 fromFormatSelector.addEventListener("change", function() {
     console.log("From format changed to " + fromFormatSelector.value)
+    updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
     convertEvent()
 })
 toFormatSelector.addEventListener("change", function() {
     console.log("To format changed to " + toFormatSelector.value)
+    updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
     convertEvent()
 })
 inputText.addEventListener("input", function() {
@@ -125,6 +156,7 @@ switchButton.addEventListener("click", function() {
     toFormat = toFormatSelector.value
     fromFormatSelector.value = toFormat
     toFormatSelector.value = fromFormat
+    updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
     convertEvent()
 })
 copyButton.addEventListener("click", function() {
@@ -144,6 +176,13 @@ moveButton.addEventListener("click", function() {
 
 
 // Helper functions
+function updateQueryParams(from, to) {
+    const url = new URL(window.location.href)
+    url.searchParams.set('from', from)
+    url.searchParams.set('to', to)
+    window.history.pushState({}, '', url)
+}
+
 function validateInput(format, input) {
     if (format in fromFormats) {
         return fromFormats[format].validator(input)

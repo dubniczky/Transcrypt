@@ -3,15 +3,16 @@ const defaultInputFormat = 'text'
 const defaultOutputFormat = 'hex'
 
 // Load controls
-fromFormatSelector = document.getElementById("from-format")
-toFormatSelector = document.getElementById("to-format")
-inputText = document.getElementById("input-text")
-outputText = document.getElementById("output-text")
-convertButton = document.getElementById("convert-button")
-switchButton = document.getElementById("switch-button")
-copyButton = document.getElementById("copy-button")
-moveButton = document.getElementById("move-button")
-outputSizeLabel = document.getElementById("output-size")
+const fromFormatSelector = document.getElementById("from-format")
+const toFormatSelector = document.getElementById("to-format")
+const inputText = document.getElementById("input-text")
+const outputText = document.getElementById("output-text")
+const convertButton = document.getElementById("convert-button")
+const switchButton = document.getElementById("switch-button")
+const copyButton = document.getElementById("copy-button")
+const moveButton = document.getElementById("move-button")
+const outputSizeLabel = document.getElementById("output-size")
+const ignoreLineBreaksCheckbox = document.getElementById("ignore-line-breaks")
 console.log("Loaded controls.")
 
 const casingSelector = document.getElementById("casing-selector")
@@ -183,6 +184,10 @@ moveButton.addEventListener("click", function() {
     outputText.value = ""
     convertEvent()
 })
+ignoreLineBreaksCheckbox.addEventListener("change", function() {
+    console.log("Ignore line breaks checkbox changed to " + ignoreLineBreaksCheckbox.checked)
+    convertEvent()
+})
 
 
 // Helper functions
@@ -228,10 +233,17 @@ function applyCasing(output) {
     return output
 }
 
+function preprocessInput(input) {
+    if (ignoreLineBreaksCheckbox.checked) {
+        return input.replace(/(\r\n|\n|\r)/gm, "") // Remove all line breaks
+    }
+    return input
+}
+
 function convertEvent() {
     fromFormat = fromFormatSelector.value
     toFormat = toFormatSelector.value
-    input = inputText.value
+    input = preprocessInput(inputText.value) // Preprocess input
 
     if (!updateInputValidation()) {
         return

@@ -1,7 +1,6 @@
 // Set defaults
 const defaultInputFormat = 'text'
 const defaultOutputFormat = 'hex'
-const defaultInput = ''
 
 // Load controls
 fromFormatSelector = document.getElementById("from-format")
@@ -138,7 +137,6 @@ console.log(`Added ${Object.keys(fromFormats).length} formats to input format se
 console.log(`Added ${Object.keys(toFormats).length} formats to output format selector.`)
 
 // Set default input value
-inputText.value = defaultInput
 updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
 
 

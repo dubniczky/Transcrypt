@@ -30,3 +30,8 @@ h2 {
     font-family: monospace;
     font-weight: bold;
 }
+#output-size {
+    font-size: 14px;
+    color: #666;
+    font-weight: lighter;
+}

@@ -4,6 +4,7 @@ inputText = document.getElementById("input-text")
 outputText = document.getElementById("output-text")
 convertButton = document.getElementById("convert-button")
 switchButton = document.getElementById("switch-button")
+outputSizeLabel = document.getElementById("output-size")
 console.log("Loaded controls.")
 
 fromFormats = {
@@ -74,6 +75,7 @@ toFormats = {
     },
 }
 
+
 // Add formats to the selector
 for (const [key, value] of Object.entries(fromFormats)) {
     option = document.createElement("option")
@@ -91,6 +93,7 @@ for (const [key, value] of Object.entries(toFormats)) {
 toFormatSelector.value = 'hex'
 console.log(`Added ${Object.keys(fromFormats).length} formats to input format selector.`)
 console.log(`Added ${Object.keys(toFormats).length} formats to output format selector.`)
+
 
 // Add event listeners
 fromFormatSelector.addEventListener("change", function() {
@@ -118,6 +121,8 @@ switchButton.addEventListener("click", function() {
     convertEvent()
 })
 
+
+// Helper functions
 function validateInput(format, input) {
     if (format in fromFormats) {
         return fromFormats[format].validator(input)
@@ -132,9 +137,15 @@ function updateInputValidation() {
         return true
     } else {
         inputText.classList.add("is-invalid")
-        outputText.value = ""
+        updateOutput("")
         return false
     }
+}
+
+function updateOutput(output) {
+    const outputSize = output.length
+    outputSizeLabel.innerText = `[${outputSize}]`
+    outputText.value = output
 }
 
 function convertEvent() {
@@ -151,8 +162,7 @@ function convertEvent() {
         return
     }
 
-    output = converters[fromFormat][toFormat](input)
-    outputText.value = output
+    updateOutput(converters[fromFormat][toFormat](input))
 }
 
 converters = {
@@ -331,12 +341,15 @@ function bytesToMd5(bytes) {
 }
 
 // Validate all formats have a valid conversion
-for (const [fromKey, fromValue] of Object.entries(fromFormats)) {
-    for (const [toKey, toValue] of Object.entries(toFormats)) {
-        if (fromKey == toKey) continue
+for (const inputFormat of Object.keys(fromFormats)) {
+    for (const outputFormat of Object.keys(toFormats)) {
+        if (inputFormat == outputFormat) continue
         // Check if the converter exists
-        if (!(fromKey in converters) || !(toKey in converters[fromKey])) {
-            console.error(`Missing converter for ${fromKey} to ${toKey}`)
+        if (!(inputFormat in converters) || !(outputFormat in converters[inputFormat])) {
+            console.error(`Missing converter for ${inputFormat} to ${outputFormat}`)
         }
     }
 }
+
+// Do a conversion on load in case the user has a value in the input field and they are just refreshing the page
+convertEvent()

@@ -4,6 +4,8 @@ inputText = document.getElementById("input-text")
 outputText = document.getElementById("output-text")
 convertButton = document.getElementById("convert-button")
 switchButton = document.getElementById("switch-button")
+copyButton = document.getElementById("copy-button")
+moveButton = document.getElementById("move-button")
 outputSizeLabel = document.getElementById("output-size")
 console.log("Loaded controls.")
 
@@ -73,6 +75,11 @@ toFormats = {
     'sha512-256': {
         'name': 'SHA512/256 Hash',
     },
+
+    // Checksums
+    'crc32': {
+        'name': 'CRC32 Checksum',
+    },
 }
 
 
@@ -118,6 +125,20 @@ switchButton.addEventListener("click", function() {
     toFormat = toFormatSelector.value
     fromFormatSelector.value = toFormat
     toFormatSelector.value = fromFormat
+    convertEvent()
+})
+copyButton.addEventListener("click", function() {
+    console.log("Copy button clicked")
+    navigator.clipboard.writeText(outputText.value).then(function() {
+        console.log("Copied to clipboard")
+    }, function(err) {
+        console.error("Could not copy text: ", err)
+    })
+})
+moveButton.addEventListener("click", function() {
+    console.log("Move button clicked")
+    inputText.value = outputText.value
+    outputText.value = ""
     convertEvent()
 })
 
@@ -178,12 +199,15 @@ converters = {
             const base64 = btoa(text)
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
+
         'sha1': text => bytesToSha1(CryptoJS.enc.Utf8.parse(text)),
         'sha256': text => bytesToSha256(CryptoJS.enc.Utf8.parse(text)),
         'sha512': text => bytesToSha512(CryptoJS.enc.Utf8.parse(text)),
         'sha3': text => bytesToSha3(CryptoJS.enc.Utf8.parse(text)),
         'sha512-256': text => bytesToSha512_256(CryptoJS.enc.Utf8.parse(text)),
         'md5': text => bytesToMd5(CryptoJS.enc.Utf8.parse(text)),
+
+        'crc32': text => bytesToCrc32(CryptoJS.enc.Utf8.parse(text)),
     },
     'hex': {
         'text': hexToText,
@@ -198,12 +222,15 @@ converters = {
             const base64 = btoa(hexToText(hex))
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
+
         'md5': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
         'sha1': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
         'sha256': hex => bytesToSha256(CryptoJS.enc.Hex.parse(hex)),
         'sha512': hex => bytesToSha512(CryptoJS.enc.Hex.parse(hex)),
         'sha3': hex => bytesToSha3(CryptoJS.enc.Hex.parse(hex)),
         'sha512-256': hex => bytesToSha512_256(CryptoJS.enc.Hex.parse(hex)),
+
+        'crc32': hex => bytesToCrc32(CryptoJS.enc.Hex.parse(hex)),
     },
     'base64': {
         'text': atob,
@@ -218,11 +245,14 @@ converters = {
             const base64url = base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
             return base64url
         },
+
         'sha1': base64 => bytesToSha1(CryptoJS.enc.Base64.parse(base64)),
         'sha256': base64 => bytesToSha256(CryptoJS.enc.Base64.parse(base64)),
         'sha512': base64 => bytesToSha512(CryptoJS.enc.Base64.parse(base64)),
         'sha3': base64 => bytesToSha3(CryptoJS.enc.Base64.parse(base64)),
         'sha512-256': base64 => bytesToSha512_256(CryptoJS.enc.Base64.parse(base64)),
+
+        'crc32': base64 => bytesToCrc32(CryptoJS.enc.Base64.parse(base64)),
     },
     'base64url': {
         'text': function(base64url) {
@@ -241,6 +271,7 @@ converters = {
             const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
             return encodeURIComponent(atob(base64))
         },
+
         'md5': function(base64url) {
             const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
             const bytes = CryptoJS.enc.Base64.parse(base64)
@@ -277,6 +308,13 @@ converters = {
             const sha512_256 = bytesToSha512_256(bytes)
             return sha512_256
         },
+
+        'crc32': function(base64url) {
+            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+            const bytes = CryptoJS.enc.Base64.parse(base64)
+            const crc32 = bytesToCrc32(bytes)
+            return crc32
+        },
     },
     'url': {
         'text': decodeURIComponent,
@@ -286,6 +324,7 @@ converters = {
             const base64 = btoa(decodeURIComponent(url))
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
+
         'md5': function(url) {
             const bytes = CryptoJS.enc.Utf8.parse(decodeURIComponent(url))
             const md5 = CryptoJS.MD5(bytes)
@@ -296,6 +335,8 @@ converters = {
         'sha512': url => bytesToSha512(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
         'sha3': url => bytesToSha3(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
         'sha512-256': url => bytesToSha512_256(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
+
+        'crc32': url => bytesToCrc32(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
     }
 }
 
@@ -353,3 +394,5 @@ for (const inputFormat of Object.keys(fromFormats)) {
 
 // Do a conversion on load in case the user has a value in the input field and they are just refreshing the page
 convertEvent()
+
+console.log(CryptoJS.enc.Utf8.parse('asd'))

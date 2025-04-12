@@ -10,41 +10,15 @@
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
         <script defer src="app.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-        <style>
-            html, body {
-                height: 100%;
-                margin: 0;
-            }
-            .d-flex {
-                height: 100%;
-            }
-            .flex-grow-1 {
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-            }
-            .textarea-container {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-            }
-            .textarea-container textarea {
-                flex: 1;
-                resize: none;
-            }
-            .is-invalid {
-                border-color: red !important;
-                box-shadow: 0 0 5px red !important;
-            }
-        </style>
+        <link rel="stylesheet" href="main.css">
     </head>
     <body>
         <div class="d-flex">
             <!-- Sidebar -->
             <div class="bg-light border-end p-3" style="width: 250px; height: 100%; overflow-y: auto;">
-                <h2 class="text-center">AnyConvert</h2>
+                <h2 class="text-center">Transcryptron</h2>
                 <div class="mb-3">
-                    <label for="from-format" class="form-label">From Format</label>
+                    <label for="from-format" class="form-label">Input Format</label>
                     <select id="from-format" class="form-select">
                     </select>
                 </div>
@@ -54,7 +28,7 @@
                     </button>
                 </div>
                 <div class="mb-3">
-                    <label for="to-format" class="form-label">To Format</label>
+                    <label for="to-format" class="form-label">Output Format</label>
                     <select id="to-format" class="form-select">
                     </select>
                 </div>

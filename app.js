@@ -89,6 +89,8 @@ for (const [key, value] of Object.entries(toFormats)) {
     toFormatSelector.appendChild(option)
 }
 toFormatSelector.value = 'hex'
+console.log(`Added ${Object.keys(fromFormats).length} formats to input format selector.`)
+console.log(`Added ${Object.keys(toFormats).length} formats to output format selector.`)
 
 // Add event listeners
 fromFormatSelector.addEventListener("change", function() {

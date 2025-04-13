@@ -53,7 +53,11 @@ fromFormats = {
                 return false
             }
         }
-    }
+    },
+    'morse': {
+        'name': 'Morse Code',
+        'validator': input => /^[\s.-]+$/.test(input),
+    },
 }
 
 toFormats = {
@@ -71,6 +75,9 @@ toFormats = {
     },
     'base64url': {
         'name': 'Base64 URL',
+    },
+    'morse': {
+        'name': 'Morse Code',
     },
 
     // Hashes
@@ -271,6 +278,7 @@ converters = {
             const base64 = btoa(text)
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
+        'morse': text => textToMorse(text),
 
         'sha1': text => bytesToSha1(CryptoJS.enc.Utf8.parse(text)),
         'sha256': text => bytesToSha256(CryptoJS.enc.Utf8.parse(text)),
@@ -294,6 +302,7 @@ converters = {
             const base64 = btoa(hexToText(hex))
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
+        'morse': hex => textToMorse(hexToText(hex)),
 
         'md5': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
         'sha1': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
@@ -317,6 +326,7 @@ converters = {
             const base64url = base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
             return base64url
         },
+        'morse': hex => textToMorse(atob(base64)),
 
         'sha1': base64 => bytesToSha1(CryptoJS.enc.Base64.parse(base64)),
         'sha256': base64 => bytesToSha256(CryptoJS.enc.Base64.parse(base64)),
@@ -342,6 +352,10 @@ converters = {
         'url': function(base64url) {
             const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
             return encodeURIComponent(atob(base64))
+        },
+        'morse': function(base64url) {
+            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+            return textToMorse(atob(base64))
         },
 
         'md5': function(base64url) {
@@ -396,6 +410,7 @@ converters = {
             const base64 = btoa(decodeURIComponent(url))
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
+        'morse': url => textToMorse(decodeURIComponent(url)),
 
         'md5': function(url) {
             const bytes = CryptoJS.enc.Utf8.parse(decodeURIComponent(url))
@@ -409,6 +424,53 @@ converters = {
         'sha512-256': url => bytesToSha512_256(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
 
         'crc32': url => bytesToCrc32(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
+    },
+    'morse': {
+        'text': morseToText,
+        'hex': function(morse) { return textToHex(morseToText(morse)) },
+        'base64': function(morse) { return btoa(morseToText(morse)) },
+        'url': function(morse) { return encodeURIComponent(morseToText(morse)) },
+        'base64url': function(morse) {
+            const base64 = btoa(morseToText(morse))
+            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+        },
+
+        'md5': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const md5 = CryptoJS.MD5(bytes)
+            return md5.toString()
+        },
+        'sha1': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const sha1 = bytesToSha1(bytes)
+            return sha1
+        },
+        'sha256': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const sha256 = bytesToSha256(bytes)
+            return sha256
+        },
+        'sha512': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const sha512 = bytesToSha512(bytes)
+            return sha512
+        },
+        'sha3': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const sha3 = bytesToSha3(bytes)
+            return sha3
+        },
+        'sha512-256': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const sha512_256 = bytesToSha512_256(bytes)
+            return sha512_256
+        },
+
+        'crc32': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const crc32 = bytesToCrc32(bytes)
+            return crc32
+        },
     }
 }
 

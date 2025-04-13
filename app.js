@@ -58,6 +58,18 @@ fromFormats = {
         'name': 'Morse Code',
         'validator': input => /^[\s.-]+$/.test(input),
     },
+    'bytes': {
+        'name': 'Byte Array',
+        'validator': input => {
+            const bytes = input.split(' ')
+            for (let i = 0; i < bytes.length; i++) {
+                if (isNaN(parseInt(bytes[i])) || parseInt(bytes[i]) < 0 || parseInt(bytes[i]) > 255) {
+                    return false
+                }
+            }
+            return true
+        }
+    }
     // 'binary': {
     //     'name': 'Binary',
     //     'validator': input => /^[01\s]+$/.test(input),
@@ -82,6 +94,9 @@ toFormats = {
     },
     'morse': {
         'name': 'Morse Code',
+    },
+    'bytes': {
+        'name': 'Byte Array',
     },
 
     // Hashes
@@ -265,6 +280,7 @@ function convertEvent() {
         return
     }
 
+    console.log(`Converting from ${fromFormat} to ${toFormat} with value: ${input}`)
     const convertedOutput = converters[fromFormat][toFormat](input)
     updateOutput(convertedOutput)
 }
@@ -272,7 +288,7 @@ function convertEvent() {
 converters = {
     'text': {
         'hex': textToHex,
-        'base64': btoa,
+        'base64': text => btoa(text), // Has to be a lambda, otherwise it will compain about missing the Window context
         'url': encodeURIComponent,
         'md5': function(text) {
             const md5 = CryptoJS.MD5(text)
@@ -283,6 +299,7 @@ converters = {
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
         'morse': text => textToMorse(text),
+        'bytes': text => new TextEncoder().encode(text).join(' '),
 
         'sha1': text => bytesToSha1(CryptoJS.enc.Utf8.parse(text)),
         'sha256': text => bytesToSha256(CryptoJS.enc.Utf8.parse(text)),
@@ -307,6 +324,7 @@ converters = {
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
         'morse': hex => textToMorse(hexToText(hex)),
+        'bytes': hex => hexToBytes(hex).join(' '),
 
         'md5': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
         'sha1': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
@@ -330,7 +348,8 @@ converters = {
             const base64url = base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
             return base64url
         },
-        'morse': hex => textToMorse(atob(base64)),
+        'morse': hex => textToMorse(atob(hex)),
+        'bytes': base64 => wordarrayToBytes(CryptoJS.enc.Base64.parse(base64)).join(' '),
 
         'sha1': base64 => bytesToSha1(CryptoJS.enc.Base64.parse(base64)),
         'sha256': base64 => bytesToSha256(CryptoJS.enc.Base64.parse(base64)),
@@ -360,6 +379,12 @@ converters = {
         'morse': function(base64url) {
             const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
             return textToMorse(atob(base64))
+        },
+        'bytes': function(base64url) {
+            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+            const bytes = CryptoJS.enc.Base64.parse(base64)
+            const byteArray = wordarrayToBytes(bytes)
+            return byteArray.join(' ')
         },
 
         'md5': function(base64url) {
@@ -415,6 +440,7 @@ converters = {
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
         },
         'morse': url => textToMorse(decodeURIComponent(url)),
+        'bytes': url => new TextEncoder().encode(decodeURIComponent(url)).join(' '),
 
         'md5': function(url) {
             const bytes = CryptoJS.enc.Utf8.parse(decodeURIComponent(url))
@@ -437,6 +463,11 @@ converters = {
         'base64url': function(morse) {
             const base64 = btoa(morseToText(morse))
             return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+        },
+        'bytes': function(morse) {
+            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
+            const byteArray = wordarrayToBytes(bytes)
+            return byteArray.join(' ')
         },
 
         'md5': function(morse) {
@@ -475,6 +506,26 @@ converters = {
             const crc32 = bytesToCrc32(bytes)
             return crc32
         },
+    },
+
+    'bytes': {
+        'text': btext => new TextDecoder().decode(btextToBytes(btext)),
+        'hex': btext => btextToBytes(btext).toHex(),
+        'base64': btext => btoa(new TextDecoder().decode(btextToBytes(btext))),
+        'url': btext => encodeURIComponent(new TextDecoder().decode(btextToBytes(btext))),
+        'base64url': btext => {
+            const base64 = btoa(new TextDecoder().decode(btextToBytes(btext)))
+            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+        },
+        'morse': btext => textToMorse(new TextDecoder().decode(btextToBytes(btext))),
+        'bytes': btext => btext,
+        'md5': btext => bytesToMd5(btextToBytes(btext)),
+        'sha1': btext => bytesToSha1(btextToBytes(btext)),
+        'sha256': btext => bytesToSha256(btextToBytes(btext)),
+        'sha512': btext => bytesToSha512(btextToBytes(btext)),
+        'sha3': btext => bytesToSha3(btextToBytes(btext)),
+        'sha512-256': btext => bytesToSha512_256(btextToBytes(btext)),
+        'crc32': btext => bytesToCrc32(btextToBytes(btext)),
     }
 }
 
@@ -518,6 +569,22 @@ function bytesToMd5(bytes) {
     const hash = CryptoJS.MD5(bytes)
     return hash.toString()
 }
+function hexToBytes(hex) {
+    const bytes = new Uint8Array(hex.length / 2)
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substr(i, 2), 16)
+    }
+    return bytes
+}
+function btextToBytes(btext) {
+    const bints = btext.split(' ')
+    const bytes = new Uint8Array(bints.length)
+    for (let i = 0; i < bints.length; i++) {
+        bytes[i] = parseInt(bints[i], 10)
+    }
+    return bytes
+}
+
 
 // Validate all formats have a valid conversion
 for (const inputFormat of Object.keys(fromFormats)) {

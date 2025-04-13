@@ -58,6 +58,10 @@ fromFormats = {
         'name': 'Morse Code',
         'validator': input => /^[\s.-]+$/.test(input),
     },
+    // 'binary': {
+    //     'name': 'Binary',
+    //     'validator': input => /^[01\s]+$/.test(input),
+    // }
 }
 
 toFormats = {

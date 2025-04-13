@@ -1,47 +1,43 @@
 // Set defaults
 const defaultInputFormat = 'text'
 const defaultOutputFormat = 'hex'
-
-// Load controls
-const fromFormatSelector = document.getElementById("from-format")
-const toFormatSelector = document.getElementById("to-format")
-const inputText = document.getElementById("input-text")
-const outputText = document.getElementById("output-text")
-const convertButton = document.getElementById("convert-button")
-const switchButton = document.getElementById("switch-button")
-const copyButton = document.getElementById("copy-button")
-const moveButton = document.getElementById("move-button")
-const outputSizeLabel = document.getElementById("output-size")
-const ignoreLineBreaksCheckbox = document.getElementById("ignore-line-breaks")
-console.log("Loaded controls.")
-
-const casingSelector = document.getElementById("casing-selector")
-const casingOptions = document.querySelectorAll(".casing-option")
-
-casingOptions.forEach(option => {
-    option.addEventListener("click", () => {
-        casingOptions.forEach(opt => opt.classList.remove("active"))
-        option.classList.add("active")
-        convertEvent()
-    })
-})
-
-fromFormats = {
+const fromFormats = {
     'text': {
         'name': 'Text',
         'validator': input => true
     },
     'hex': {
         'name': 'HEX',
-        'validator': input => /^[0-9a-fA-F]+$/.test(input)
+        'validator': input => {
+            try {
+                Uint8Array.fromHex(input)
+                return true
+            } catch {
+                return false
+            }
+        }
     },
     'base64': {
         'name': 'Base64',
-        'validator': input => /^[A-Za-z0-9+/=]+$/.test(input)
+        'validator': input => {
+            try {
+                Uint8Array.fromBase64(input)
+                return true
+            } catch {
+                return false
+            }
+        }
     },
     'base64url': {
         'name': 'Base64 URL',
-        'validator': input => /^[A-Za-z0-9-_]+$/.test(input)
+        'validator': input => {
+            try {
+                Uint8Array.fromBase64(b64UrlToB64(input))
+                return true
+            } catch {
+                return false
+            }
+        }
     },
     'url': {
         'name': 'URL Encoding',
@@ -75,8 +71,7 @@ fromFormats = {
     //     'validator': input => /^[01\s]+$/.test(input),
     // }
 }
-
-toFormats = {
+const toFormats = {
     'text': {
         'name': 'Text',
     },
@@ -125,7 +120,26 @@ toFormats = {
     },
 }
 
-// Load query prams
+
+
+// Load controls
+const fromFormatSelector = document.getElementById("from-format")
+const toFormatSelector = document.getElementById("to-format")
+const inputText = document.getElementById("input-text")
+const outputText = document.getElementById("output-text")
+const convertButton = document.getElementById("convert-button")
+const switchButton = document.getElementById("switch-button")
+const copyButton = document.getElementById("copy-button")
+const moveButton = document.getElementById("move-button")
+const outputSizeLabel = document.getElementById("output-size")
+const ignoreLineBreaksCheckbox = document.getElementById("ignore-line-breaks")
+const casingSelector = document.getElementById("casing-selector")
+const casingOptions = document.querySelectorAll(".casing-option")
+console.log("Loaded controls.")
+
+
+
+// Load query prams and set formats
 const urlParams = new URLSearchParams(window.location.search)
 inputFormat = urlParams.get('from')
 outputFormat = urlParams.get('to')
@@ -214,6 +228,13 @@ ignoreLineBreaksCheckbox.addEventListener("change", function() {
     console.log("Ignore line breaks checkbox changed to " + ignoreLineBreaksCheckbox.checked)
     convertEvent()
 })
+casingOptions.forEach(option => {
+    option.addEventListener("click", () => {
+        casingOptions.forEach(opt => opt.classList.remove("active"))
+        option.classList.add("active")
+        convertEvent()
+    })
+})
 
 
 // Helper functions
@@ -267,9 +288,9 @@ function preprocessInput(input) {
 }
 
 function convertEvent() {
-    fromFormat = fromFormatSelector.value
-    toFormat = toFormatSelector.value
-    input = preprocessInput(inputText.value) // Preprocess input
+    const fromFormat = fromFormatSelector.value
+    const toFormat = toFormatSelector.value
+    const input = preprocessInput(inputText.value) // Preprocess input
 
     if (!updateInputValidation()) {
         return
@@ -280,27 +301,20 @@ function convertEvent() {
         return
     }
 
-    console.log(`Converting from ${fromFormat} to ${toFormat} with value: ${input}`)
     const convertedOutput = converters[fromFormat][toFormat](input)
     updateOutput(convertedOutput)
 }
 
-converters = {
+const converters = {
     'text': {
         'hex': textToHex,
         'base64': text => btoa(text), // Has to be a lambda, otherwise it will compain about missing the Window context
         'url': encodeURIComponent,
-        'md5': function(text) {
-            const md5 = CryptoJS.MD5(text)
-            return md5.toString()
-        },
-        'base64url': function(text) {
-            const base64 = btoa(text)
-            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
-        },
+        'base64url': text => b64ToB64Url(btoa(text)),
         'morse': text => textToMorse(text),
         'bytes': text => new TextEncoder().encode(text).join(' '),
-
+        
+        'md5': text => bytesToMd5(CryptoJS.enc.Utf8.parse(text)),
         'sha1': text => bytesToSha1(CryptoJS.enc.Utf8.parse(text)),
         'sha256': text => bytesToSha256(CryptoJS.enc.Utf8.parse(text)),
         'sha512': text => bytesToSha512(CryptoJS.enc.Utf8.parse(text)),
@@ -312,17 +326,9 @@ converters = {
     },
     'hex': {
         'text': hexToText,
-        'base64': function(hex) { return btoa(hexToText(hex)) },
-        'url': function(hex) { return encodeURIComponent(hexToText(hex)) },
-        'md5': function(hex) {
-            const bytes = CryptoJS.enc.Hex.parse(hex)
-            const md5 = CryptoJS.MD5(bytes)
-            return md5.toString()
-        },
-        'base64url': function(hex) {
-            const base64 = btoa(hexToText(hex))
-            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
-        },
+        'base64': hex => btoa(hexToText(hex)),
+        'url': hex => encodeURIComponent(hexToText(hex)),
+        'base64url': hex => b64ToB64Url(btoa(hexToText(hex))),
         'morse': hex => textToMorse(hexToText(hex)),
         'bytes': hex => hexToBytes(hex).join(' '),
 
@@ -337,20 +343,13 @@ converters = {
     },
     'base64': {
         'text': atob,
-        'hex': function(base64) { return textToHex(atob(base64)) },
-        'url': function(base64) { return encodeURIComponent(atob(base64)) },
-        'md5': function(base64) {
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const md5 = CryptoJS.MD5(bytes)
-            return md5.toString()
-        },
-        'base64url': function(base64) {
-            const base64url = base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
-            return base64url
-        },
+        'hex': base64 => textToHex(atob(base64)),
+        'url': base64 => encodeURIComponent(atob(base64)),
+        'base64url': b64ToB64Url,
         'morse': hex => textToMorse(atob(hex)),
         'bytes': base64 => wordarrayToBytes(CryptoJS.enc.Base64.parse(base64)).join(' '),
 
+        'md5': base64 => bytesToMd5(CryptoJS.enc.Base64.parse(base64)),
         'sha1': base64 => bytesToSha1(CryptoJS.enc.Base64.parse(base64)),
         'sha256': base64 => bytesToSha256(CryptoJS.enc.Base64.parse(base64)),
         'sha512': base64 => bytesToSha512(CryptoJS.enc.Base64.parse(base64)),
@@ -360,93 +359,30 @@ converters = {
         'crc32': base64 => bytesToCrc32(CryptoJS.enc.Base64.parse(base64)),
     },
     'base64url': {
-        'text': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            return atob(base64)
-        },
-        'hex': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            return textToHex(atob(base64))
-        },
-        'base64': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            return base64
-        },
-        'url': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            return encodeURIComponent(atob(base64))
-        },
-        'morse': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            return textToMorse(atob(base64))
-        },
-        'bytes': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const byteArray = wordarrayToBytes(bytes)
-            return byteArray.join(' ')
-        },
+        'text': b64u => atob(b64UrlToB64(b64u)),
+        'hex': b64u => textToHex(atob(b64UrlToB64(b64u))),
+        'base64': b64u => b64UrlToB64(b64u),
+        'url': b64u => encodeURIComponent(atob(b64UrlToB64(b64u))),
+        'morse': b64u => textToMorse(atob(b64UrlToB64(b64u))),
+        'bytes': b64u => wordarrayToBytes(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))).join(' '),
 
-        'md5': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const md5 = CryptoJS.MD5(bytes)
-            return md5.toString()
-        },
-        'sha1': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const sha1 = bytesToSha1(bytes)
-            return sha1
-        },
-        'sha256': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const sha256 = bytesToSha256(bytes)
-            return sha256
-        },
-        'sha512': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const sha512 = bytesToSha512(bytes)
-            return sha512
-        },
-        'sha3': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const sha3 = bytesToSha3(bytes)
-            return sha3
-        },
-        'sha512-256': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const sha512_256 = bytesToSha512_256(bytes)
-            return sha512_256
-        },
-
-        'crc32': function(base64url) {
-            const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-            const bytes = CryptoJS.enc.Base64.parse(base64)
-            const crc32 = bytesToCrc32(bytes)
-            return crc32
-        },
+        'md5': b64u => bytesToMd5(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
+        'sha1': b64u => bytesToSha1(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
+        'sha256': b64u => bytesToSha256(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
+        'sha512': b64u => bytesToSha512(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
+        'sha3': b64u => bytesToSha3(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
+        'sha512-256': b64u => bytesToSha512_256(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
+        'crc32': b64u => bytesToCrc32(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
     },
     'url': {
         'text': decodeURIComponent,
-        'hex': function(url) { return textToHex(decodeURIComponent(url)) },
-        'base64': function(url) { return btoa(decodeURIComponent(url)) },
-        'base64url': function(url) {
-            const base64 = btoa(decodeURIComponent(url))
-            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
-        },
+        'hex': url => textToHex(decodeURIComponent(url)),
+        'base64': url => btoa(decodeURIComponent(url)),
+        'base64url': url => b64ToB64Url(btoa(decodeURIComponent(url))),
         'morse': url => textToMorse(decodeURIComponent(url)),
         'bytes': url => new TextEncoder().encode(decodeURIComponent(url)).join(' '),
 
-        'md5': function(url) {
-            const bytes = CryptoJS.enc.Utf8.parse(decodeURIComponent(url))
-            const md5 = CryptoJS.MD5(bytes)
-            return md5.toString()
-        },
+        'md5': url => bytesToMd5(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
         'sha1': url => bytesToSha1(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
         'sha256': url => bytesToSha256(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
         'sha512': url => bytesToSha512(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
@@ -457,55 +393,20 @@ converters = {
     },
     'morse': {
         'text': morseToText,
-        'hex': function(morse) { return textToHex(morseToText(morse)) },
-        'base64': function(morse) { return btoa(morseToText(morse)) },
-        'url': function(morse) { return encodeURIComponent(morseToText(morse)) },
-        'base64url': function(morse) {
-            const base64 = btoa(morseToText(morse))
-            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
-        },
-        'bytes': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const byteArray = wordarrayToBytes(bytes)
-            return byteArray.join(' ')
-        },
+        'hex': morse => textToHex(morseToText(morse)),
+        'base64': morse => btoa(morseToText(morse)),
+        'url': morse => encodeURIComponent(morseToText(morse)),
+        'base64url': morse => b64ToB64Url(btoa(morseToText(morse))),
+        'bytes': morse => wordarrayToBytes(CryptoJS.enc.Utf8.parse(morseToText(morse))).join(' '),
 
-        'md5': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const md5 = CryptoJS.MD5(bytes)
-            return md5.toString()
-        },
-        'sha1': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const sha1 = bytesToSha1(bytes)
-            return sha1
-        },
-        'sha256': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const sha256 = bytesToSha256(bytes)
-            return sha256
-        },
-        'sha512': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const sha512 = bytesToSha512(bytes)
-            return sha512
-        },
-        'sha3': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const sha3 = bytesToSha3(bytes)
-            return sha3
-        },
-        'sha512-256': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const sha512_256 = bytesToSha512_256(bytes)
-            return sha512_256
-        },
+        'md5': morse => bytesToMd5(CryptoJS.enc.Utf8.parse(morseToText(morse))),
+        'sha1': morse => bytesToSha1(CryptoJS.enc.Utf8.parse(morseToText(morse))),
+        'sha256': morse => bytesToSha256(CryptoJS.enc.Utf8.parse(morseToText(morse))),
+        'sha512': morse => bytesToSha512(CryptoJS.enc.Utf8.parse(morseToText(morse))),
+        'sha3': morse => bytesToSha3(CryptoJS.enc.Utf8.parse(morseToText(morse))),
+        'sha512-256': morse => bytesToSha512_256(CryptoJS.enc.Utf8.parse(morseToText(morse))),
 
-        'crc32': function(morse) {
-            const bytes = CryptoJS.enc.Utf8.parse(morseToText(morse))
-            const crc32 = bytesToCrc32(bytes)
-            return crc32
-        },
+        'crc32': morse => bytesToCrc32(CryptoJS.enc.Utf8.parse(morseToText(morse))),
     },
 
     'bytes': {
@@ -513,96 +414,19 @@ converters = {
         'hex': btext => btextToBytes(btext).toHex(),
         'base64': btext => btoa(new TextDecoder().decode(btextToBytes(btext))),
         'url': btext => encodeURIComponent(new TextDecoder().decode(btextToBytes(btext))),
-        'base64url': btext => {
-            const base64 = btoa(new TextDecoder().decode(btextToBytes(btext)))
-            return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
-        },
+        'base64url': btext => b64ToB64Url(btoa(new TextDecoder().decode(btextToBytes(btext)))),
         'morse': btext => textToMorse(new TextDecoder().decode(btextToBytes(btext))),
         'bytes': btext => btext,
+
         'md5': btext => bytesToMd5(btextToBytes(btext)),
         'sha1': btext => bytesToSha1(btextToBytes(btext)),
         'sha256': btext => bytesToSha256(btextToBytes(btext)),
         'sha512': btext => bytesToSha512(btextToBytes(btext)),
         'sha3': btext => bytesToSha3(btextToBytes(btext)),
         'sha512-256': btext => bytesToSha512_256(btextToBytes(btext)),
+
         'crc32': btext => bytesToCrc32(btextToBytes(btext)),
     }
-}
-
-//801c34269f74ed383fc97de33604b8a905adb635
-
-function textToHex(str) {
-    let hex = ''
-    for (let i = 0; i < str.length; i++) {
-        hex += str.charCodeAt(i).toString(16)
-    }
-    return hex
-}
-
-function hexToText(hex) {
-    let str = ''
-    for (let i = 0; i < hex.length; i += 2) {
-        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16))
-    }
-    return str
-}
-
-function bytesToSha1(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    const hash = CryptoJS.SHA1(bytes)
-    return hash.toString()
-}
-function bytesToSha256(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    const hash = CryptoJS.SHA256(bytes)
-    return hash.toString()
-}
-function bytesToSha512(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    const hash = CryptoJS.SHA512(bytes)
-    return hash.toString()
-}
-function bytesToSha3(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    const hash = CryptoJS.SHA3(bytes)
-    return hash.toString()
-}
-function bytesToSha512_256(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    const hash = CryptoJS.SHA512(bytes).toString(CryptoJS.enc.Hex)
-    return hash.slice(0, 64)
-}
-function bytesToMd5(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    const hash = CryptoJS.MD5(bytes)
-    return hash.toString()
-}
-function hexToBytes(hex) {
-    const bytes = new Uint8Array(hex.length / 2)
-    for (let i = 0; i < hex.length; i += 2) {
-        bytes[i / 2] = parseInt(hex.substr(i, 2), 16)
-    }
-    return bytes
-}
-function btextToBytes(btext) {
-    const bints = btext.split(' ')
-    const bytes = new Uint8Array(bints.length)
-    for (let i = 0; i < bints.length; i++) {
-        bytes[i] = parseInt(bints[i], 10)
-    }
-    return bytes
 }
 
 

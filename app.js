@@ -529,6 +529,8 @@ converters = {
     }
 }
 
+//801c34269f74ed383fc97de33604b8a905adb635
+
 function textToHex(str) {
     let hex = ''
     for (let i = 0; i < str.length; i++) {
@@ -546,26 +548,44 @@ function hexToText(hex) {
 }
 
 function bytesToSha1(bytes) {
+    if (bytes instanceof Uint8Array) {
+        bytes = bytesToWordarray(bytes)
+    }
     const hash = CryptoJS.SHA1(bytes)
     return hash.toString()
 }
 function bytesToSha256(bytes) {
+    if (bytes instanceof Uint8Array) {
+        bytes = bytesToWordarray(bytes)
+    }
     const hash = CryptoJS.SHA256(bytes)
     return hash.toString()
 }
 function bytesToSha512(bytes) {
+    if (bytes instanceof Uint8Array) {
+        bytes = bytesToWordarray(bytes)
+    }
     const hash = CryptoJS.SHA512(bytes)
     return hash.toString()
 }
 function bytesToSha3(bytes) {
+    if (bytes instanceof Uint8Array) {
+        bytes = bytesToWordarray(bytes)
+    }
     const hash = CryptoJS.SHA3(bytes)
     return hash.toString()
 }
 function bytesToSha512_256(bytes) {
+    if (bytes instanceof Uint8Array) {
+        bytes = bytesToWordarray(bytes)
+    }
     const hash = CryptoJS.SHA512(bytes).toString(CryptoJS.enc.Hex)
     return hash.slice(0, 64)
 }
 function bytesToMd5(bytes) {
+    if (bytes instanceof Uint8Array) {
+        bytes = bytesToWordarray(bytes)
+    }
     const hash = CryptoJS.MD5(bytes)
     return hash.toString()
 }

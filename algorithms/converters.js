@@ -1,4 +1,4 @@
-// WordArray (CryptoJS) <=> Uint8Array
+// WordArray (CryptoJS) <=> Uint8Array (bytes)
 function wordarrayToBytes(wordArray) {
     const words = wordArray.words;
     const sigBytes = wordArray.sigBytes;
@@ -27,7 +27,7 @@ function bytesToWordarray(u8Array) {
 }
 
 
-// Hex <=> Uint8Array
+// Hex <=> Uint8Array (bytes)
 function hexToBytes(hex) {
     const bytes = new Uint8Array(hex.length / 2)
     for (let i = 0; i < hex.length; i += 2) {
@@ -69,6 +69,26 @@ function b64ToB64Url(base64) {
 
 function b64UrlToB64(base64url) {
     return base64url.replace(/-/g, '+').replace(/_/g, '/')
+}
+
+
+// Binary string <=> UInt8Array (bytes)
+function binaryToBytes(binary) {
+    binary = binary.replace(/\s+/g, '') // Remove all spaces
+    let length = binary.length - binary.length % 8 // ignore extra bits at the end
+
+    const bytes = new Uint8Array(length / 8)
+    for (let i = 0; i < length; i += 8) {
+        bytes[i / 8] = parseInt(binary.substr(i, 8), 2)
+    }
+    return bytes
+}
+function bytesToBinary(bytes) {
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+        binary += bytes[i].toString(2).padStart(8, '0')
+    }
+    return binary
 }
 
 

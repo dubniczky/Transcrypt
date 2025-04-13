@@ -65,12 +65,14 @@ const fromFormats = {
             }
             return true
         }
+    },
+    'binary': {
+        'name': 'Binary',
+        'validator': input => /^[01\s]+$/.test(input),
     }
-    // 'binary': {
-    //     'name': 'Binary',
-    //     'validator': input => /^[01\s]+$/.test(input),
-    // }
 }
+//f10e2821bbbea527ea02200352313bc059445190
+
 const toFormats = {
     'text': {
         'name': 'Text',
@@ -92,6 +94,9 @@ const toFormats = {
     },
     'bytes': {
         'name': 'Byte Array',
+    },
+    'binary': {
+        'name': 'Binary',
     },
 
     // Hashes
@@ -313,6 +318,7 @@ const converters = {
         'base64url': text => b64ToB64Url(btoa(text)),
         'morse': text => textToMorse(text),
         'bytes': text => new TextEncoder().encode(text).join(' '),
+        'binary': text => bytesToBinary(CryptoJS.enc.Utf8.parse(text)),
         
         'md5': text => bytesToMd5(CryptoJS.enc.Utf8.parse(text)),
         'sha1': text => bytesToSha1(CryptoJS.enc.Utf8.parse(text)),
@@ -331,6 +337,7 @@ const converters = {
         'base64url': hex => b64ToB64Url(btoa(hexToText(hex))),
         'morse': hex => textToMorse(hexToText(hex)),
         'bytes': hex => hexToBytes(hex).join(' '),
+        'binary': hex => bytesToBinary(hexToBytes(hex)),
 
         'md5': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
         'sha1': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
@@ -348,6 +355,7 @@ const converters = {
         'base64url': b64ToB64Url,
         'morse': hex => textToMorse(atob(hex)),
         'bytes': base64 => wordarrayToBytes(CryptoJS.enc.Base64.parse(base64)).join(' '),
+        'binary': base64 => bytesToBinary(CryptoJS.enc.Base64.parse(base64)),
 
         'md5': base64 => bytesToMd5(CryptoJS.enc.Base64.parse(base64)),
         'sha1': base64 => bytesToSha1(CryptoJS.enc.Base64.parse(base64)),
@@ -365,6 +373,7 @@ const converters = {
         'url': b64u => encodeURIComponent(atob(b64UrlToB64(b64u))),
         'morse': b64u => textToMorse(atob(b64UrlToB64(b64u))),
         'bytes': b64u => wordarrayToBytes(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))).join(' '),
+        'binary': b64u => bytesToBinary(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
 
         'md5': b64u => bytesToMd5(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
         'sha1': b64u => bytesToSha1(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
@@ -381,6 +390,7 @@ const converters = {
         'base64url': url => b64ToB64Url(btoa(decodeURIComponent(url))),
         'morse': url => textToMorse(decodeURIComponent(url)),
         'bytes': url => new TextEncoder().encode(decodeURIComponent(url)).join(' '),
+        'binary': url => bytesToBinary(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
 
         'md5': url => bytesToMd5(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
         'sha1': url => bytesToSha1(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
@@ -398,6 +408,7 @@ const converters = {
         'url': morse => encodeURIComponent(morseToText(morse)),
         'base64url': morse => b64ToB64Url(btoa(morseToText(morse))),
         'bytes': morse => wordarrayToBytes(CryptoJS.enc.Utf8.parse(morseToText(morse))).join(' '),
+        'binary': morse => bytesToBinary(CryptoJS.enc.Utf8.parse(morseToText(morse))),
 
         'md5': morse => bytesToMd5(CryptoJS.enc.Utf8.parse(morseToText(morse))),
         'sha1': morse => bytesToSha1(CryptoJS.enc.Utf8.parse(morseToText(morse))),
@@ -417,6 +428,7 @@ const converters = {
         'base64url': btext => b64ToB64Url(btoa(new TextDecoder().decode(btextToBytes(btext)))),
         'morse': btext => textToMorse(new TextDecoder().decode(btextToBytes(btext))),
         'bytes': btext => btext,
+        'binary': btext => bytesToBinary(btextToBytes(btext)),
 
         'md5': btext => bytesToMd5(btextToBytes(btext)),
         'sha1': btext => bytesToSha1(btextToBytes(btext)),
@@ -426,6 +438,25 @@ const converters = {
         'sha512-256': btext => bytesToSha512_256(btextToBytes(btext)),
 
         'crc32': btext => bytesToCrc32(btextToBytes(btext)),
+    },
+    'binary': {
+        'text': binary => new TextDecoder().decode(binaryToBytes(binary)),
+        'hex': binary => textToHex(new TextDecoder().decode(binaryToBytes(binary))),
+        'base64': binary => btoa(new TextDecoder().decode(binaryToBytes(binary))),
+        'url': binary => encodeURIComponent(new TextDecoder().decode(binaryToBytes(binary))),
+        'base64url': binary => b64ToB64Url(btoa(new TextDecoder().decode(binaryToBytes(binary)))),
+        'morse': binary => textToMorse(new TextDecoder().decode(binaryToBytes(binary))),
+        'bytes': binary => binaryToBytes(binary).join(' '),
+        'binary': binary => binary,
+
+        'md5': binary => bytesToMd5(binaryToBytes(binary)),
+        'sha1': binary => bytesToSha1(binaryToBytes(binary)),
+        'sha256': binary => bytesToSha256(binaryToBytes(binary)),
+        'sha512': binary => bytesToSha512(binaryToBytes(binary)),
+        'sha3': binary => bytesToSha3(binaryToBytes(binary)),
+        'sha512-256': binary => bytesToSha512_256(binaryToBytes(binary)),
+
+        'crc32': binary => bytesToCrc32(binaryToBytes(binary)),
     }
 }
 

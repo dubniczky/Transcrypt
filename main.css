@@ -46,3 +46,27 @@ h2 {
 #credit-link{
     text-decoration: none;
 }
+
+.casing-selector {
+    display: flex;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+.casing-option {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    background-color: #f8f9fa;
+    border-right: 1px solid #ced4da;
+    font-weight: bold;
+    font-size: 18px;
+}
+.casing-option:last-child {
+    border-right: none;
+}
+.casing-option.active {
+    background-color: #007bff;
+    color: white;
+}

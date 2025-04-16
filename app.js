@@ -80,6 +80,14 @@ const fromFormats = {
         'validator': input => /^[\s.-]+$/.test(input),
         'convert': input => new TextEncoder().encode(morseToText(input))
     },
+    'uuid4': {
+        'name': 'UUIDv4',
+        'validator': input => {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+            return uuidRegex.test(input)
+        },
+        'convert': input => hexToBytes(input.replace(/-/g, ''))
+    }
 }
 
 const toFormats = {
@@ -114,6 +122,27 @@ const toFormats = {
     'morse': {
         'name': 'Morse Code',
         'convert': input => textToMorse(new TextDecoder().decode(input))
+    },
+    'uuid4': {
+        'name': 'UUIDv4',
+        'convert': input => {
+            if (!input.length !== 16) {
+                return 'Invalid UUIDv4 length! 16 bytes required. Current: ' + input.length
+            }
+          
+            input[6] = (input[6] & 0x0f) | 0x40 // Set version (UUIDv4 = 0100)
+            input[8] = (input[8] & 0x3f) | 0x80 // Set variant (10xx)
+          
+            // Convert bytes to UUID string format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            const hex = [...input].map(b => b.toString(16).padStart(2, '0'))
+            return [
+                hex.slice(0, 4).join(''),
+                hex.slice(4, 6).join(''),
+                hex.slice(6, 8).join(''),
+                hex.slice(8, 10).join(''),
+                hex.slice(10, 16).join('')
+            ].join('-')
+        }
     },
 
     // Hashes

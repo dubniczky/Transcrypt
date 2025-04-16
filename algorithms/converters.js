@@ -35,6 +35,16 @@ function hexToBytes(hex) {
     }
     return bytes
 }
+function bytesToHex(bytes) {
+    let hex = ''
+    for (let i = 0; i < bytes.length; i++) {
+        hex += ('0' + bytes[i].toString(16)).slice(-2)
+    }
+    return hex
+}
+
+
+// Byte array text <=> bytes
 function btextToBytes(btext) {
     const bints = btext.split(' ')
     const bytes = new Uint8Array(bints.length)
@@ -43,6 +53,10 @@ function btextToBytes(btext) {
     }
     return bytes
 }
+function bytesToBtext(bytes) {
+    return Array.from(bytes).join(' ')
+}
+
 
 // Text <=> Hex
 function textToHex(str) {
@@ -62,6 +76,25 @@ function hexToText(hex) {
 }
 
 
+// Base64 <=> Bytes
+function base64ToBytes(base64) {
+    const binaryString = atob(base64)
+    const len = binaryString.length
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+    }
+    return bytes
+}
+function bytesToBase64(bytes) {
+    let binaryString = ''
+    for (let i = 0; i < bytes.length; i++) {
+        binaryString += String.fromCharCode(bytes[i])
+    }
+    return btoa(binaryString)
+  }
+
+
 // Base64 <=> Base64URL
 function b64ToB64Url(base64) {
     return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
@@ -75,7 +108,7 @@ function b64UrlToB64(base64url) {
 // Binary string <=> UInt8Array (bytes)
 function binaryToBytes(binary) {
     binary = binary.replace(/\s+/g, '') // Remove all spaces
-    let length = binary.length - binary.length % 8 // ignore extra bits at the end
+    let length = binary.length - (binary.length % 8) // ignore extra bits at the end
 
     const bytes = new Uint8Array(length / 8)
     for (let i = 0; i < length; i += 8) {
@@ -94,10 +127,8 @@ function bytesToBinary(bytes) {
 
 // Uint8Array & WordArray => Hashes
 function bytesToMd5(bytes) {
-    if (bytes instanceof Uint8Array) {
-        bytes = bytesToWordarray(bytes)
-    }
-    return CryptoJS.MD5(bytes).toString()
+    cons
+    return CryptoJS.MD5(bytesToWordarray(bytes)).toString()
 }
 
 function bytesToSha1(bytes) {

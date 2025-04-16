@@ -1,10 +1,13 @@
 // Set defaults
 const defaultInputFormat = 'text'
 const defaultOutputFormat = 'hex'
+
+
 const fromFormats = {
     'text': {
         'name': 'Text',
-        'validator': input => true
+        'validator': input => true,
+        'convert': input => new TextEncoder().encode(input)
     },
     'hex': {
         'name': 'HEX',
@@ -15,7 +18,8 @@ const fromFormats = {
             } catch {
                 return false
             }
-        }
+        },
+        'convert': input => hexToBytes(input)
     },
     'base64': {
         'name': 'Base64',
@@ -26,7 +30,8 @@ const fromFormats = {
             } catch {
                 return false
             }
-        }
+        },
+        'convert': input => base64ToBytes(input)
     },
     'base64url': {
         'name': 'Base64 URL',
@@ -37,7 +42,8 @@ const fromFormats = {
             } catch {
                 return false
             }
-        }
+        },
+        'convert': input => base64ToBytes(b64UrlToB64(input))
     },
     'url': {
         'name': 'URL Encoding',
@@ -48,11 +54,13 @@ const fromFormats = {
             } catch {
                 return false
             }
-        }
+        },
+        'convert': input => new TextEncoder().encode(decodeURIComponent(input))
     },
     'morse': {
         'name': 'Morse Code',
         'validator': input => /^[\s.-]+$/.test(input),
+        'convert': input => new TextEncoder().encode(morseToText(input))
     },
     'bytes': {
         'name': 'Byte Array',
@@ -64,64 +72,80 @@ const fromFormats = {
                 }
             }
             return true
-        }
+        },
+        'convert': input => btextToBytes(input)
     },
     'binary': {
         'name': 'Binary',
         'validator': input => /^[01\s]+$/.test(input),
+        'convert': input => binaryToBytes(input)
     }
 }
-//f10e2821bbbea527ea02200352313bc059445190
 
 const toFormats = {
     'text': {
         'name': 'Text',
+        'convert': input => new TextDecoder().decode(input)
     },
     'hex': {
         'name': 'HEX',
+        'convert': input => bytesToHex(input)
     },
     'base64': {
         'name': 'Base64',
+        'convert': input => bytesToBase64(input)
     },
     'url': {
         'name': 'URL Encoding',
+        'convert': input => encodeURIComponent(new TextDecoder().decode(input))
     },
     'base64url': {
         'name': 'Base64 URL',
+        'convert': input => b64ToB64Url(bytesToBase64(input))
     },
     'morse': {
         'name': 'Morse Code',
+        'convert': input => textToMorse(new TextDecoder().decode(input))
     },
     'bytes': {
         'name': 'Byte Array',
+        'convert': input => bytesToBtext(input)
     },
     'binary': {
         'name': 'Binary',
+        'convert': input => bytesToBinary(input)
     },
 
     // Hashes
     'md5': {
         'name': 'MD5 Hash',
+        'convert': input => CryptoJS.MD5(bytesToWordarray(input)).toString(),
     },
     'sha1': {
         'name': 'SHA1 Hash',
+        'convert': input => CryptoJS.SHA1(bytesToWordarray(input)).toString(),
     },
     'sha256': {
         'name': 'SHA256 Hash',
+        'convert': input => CryptoJS.SHA256(bytesToWordarray(input)).toString(),
     },
     'sha512': {
         'name': 'SHA512 Hash',
+        'convert': input => CryptoJS.SHA512(bytesToWordarray(input)).toString(),
     },
     'sha3': {
         'name': 'SHA3 Hash',
+        'convert': input => CryptoJS.SHA3(bytesToWordarray(input)).toString(),
     },
     'sha512-256': {
         'name': 'SHA512/256 Hash',
+        'convert': input => CryptoJS.SHA512(bytesToWordarray(input), { outputLength: 256 }).toString(),
     },
 
     // Checksums
     'crc32': {
         'name': 'CRC32 Checksum',
+        'convert': input => bytesToCrc32(input),
     },
 }
 
@@ -301,175 +325,22 @@ function convertEvent() {
         return
     }
 
-    if (fromFormat == toFormat) {
-        updateOutput(input)
+    if (!(fromFormat in fromFormats)) {
+        console.error(`Invalid input format selected ${fromFormat}`)
         return
     }
 
-    const convertedOutput = converters[fromFormat][toFormat](input)
+    if (!(toFormat in toFormats)) {
+        console.error(`Invalid output format selected ${toFormat}`)
+        return
+    }
+
+    // Convert input to bytes
+    const inputBytes = fromFormats[fromFormat].convert(input)
+    // Convert bytes to output format
+    const convertedOutput = toFormats[toFormat].convert(inputBytes)
+
     updateOutput(convertedOutput)
-}
-
-const converters = {
-    'text': {
-        'hex': textToHex,
-        'base64': text => btoa(text), // Has to be a lambda, otherwise it will compain about missing the Window context
-        'url': encodeURIComponent,
-        'base64url': text => b64ToB64Url(btoa(text)),
-        'morse': text => textToMorse(text),
-        'bytes': text => new TextEncoder().encode(text).join(' '),
-        'binary': text => bytesToBinary(CryptoJS.enc.Utf8.parse(text)),
-        
-        'md5': text => bytesToMd5(CryptoJS.enc.Utf8.parse(text)),
-        'sha1': text => bytesToSha1(CryptoJS.enc.Utf8.parse(text)),
-        'sha256': text => bytesToSha256(CryptoJS.enc.Utf8.parse(text)),
-        'sha512': text => bytesToSha512(CryptoJS.enc.Utf8.parse(text)),
-        'sha3': text => bytesToSha3(CryptoJS.enc.Utf8.parse(text)),
-        'sha512-256': text => bytesToSha512_256(CryptoJS.enc.Utf8.parse(text)),
-        'md5': text => bytesToMd5(CryptoJS.enc.Utf8.parse(text)),
-
-        'crc32': text => bytesToCrc32(CryptoJS.enc.Utf8.parse(text)),
-    },
-    'hex': {
-        'text': hexToText,
-        'base64': hex => btoa(hexToText(hex)),
-        'url': hex => encodeURIComponent(hexToText(hex)),
-        'base64url': hex => b64ToB64Url(btoa(hexToText(hex))),
-        'morse': hex => textToMorse(hexToText(hex)),
-        'bytes': hex => hexToBytes(hex).join(' '),
-        'binary': hex => bytesToBinary(hexToBytes(hex)),
-
-        'md5': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
-        'sha1': hex => bytesToSha1(CryptoJS.enc.Hex.parse(hex)),
-        'sha256': hex => bytesToSha256(CryptoJS.enc.Hex.parse(hex)),
-        'sha512': hex => bytesToSha512(CryptoJS.enc.Hex.parse(hex)),
-        'sha3': hex => bytesToSha3(CryptoJS.enc.Hex.parse(hex)),
-        'sha512-256': hex => bytesToSha512_256(CryptoJS.enc.Hex.parse(hex)),
-
-        'crc32': hex => bytesToCrc32(CryptoJS.enc.Hex.parse(hex)),
-    },
-    'base64': {
-        'text': base64 => atob(base64),
-        'hex': base64 => textToHex(atob(base64)),
-        'url': base64 => encodeURIComponent(atob(base64)),
-        'base64url': b64ToB64Url,
-        'morse': hex => textToMorse(atob(hex)),
-        'bytes': base64 => wordarrayToBytes(CryptoJS.enc.Base64.parse(base64)).join(' '),
-        'binary': base64 => bytesToBinary(CryptoJS.enc.Base64.parse(base64)),
-
-        'md5': base64 => bytesToMd5(CryptoJS.enc.Base64.parse(base64)),
-        'sha1': base64 => bytesToSha1(CryptoJS.enc.Base64.parse(base64)),
-        'sha256': base64 => bytesToSha256(CryptoJS.enc.Base64.parse(base64)),
-        'sha512': base64 => bytesToSha512(CryptoJS.enc.Base64.parse(base64)),
-        'sha3': base64 => bytesToSha3(CryptoJS.enc.Base64.parse(base64)),
-        'sha512-256': base64 => bytesToSha512_256(CryptoJS.enc.Base64.parse(base64)),
-
-        'crc32': base64 => bytesToCrc32(CryptoJS.enc.Base64.parse(base64)),
-    },
-    'base64url': {
-        'text': b64u => atob(b64UrlToB64(b64u)),
-        'hex': b64u => textToHex(atob(b64UrlToB64(b64u))),
-        'base64': b64u => b64UrlToB64(b64u),
-        'url': b64u => encodeURIComponent(atob(b64UrlToB64(b64u))),
-        'morse': b64u => textToMorse(atob(b64UrlToB64(b64u))),
-        'bytes': b64u => wordarrayToBytes(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))).join(' '),
-        'binary': b64u => bytesToBinary(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-
-        'md5': b64u => bytesToMd5(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-        'sha1': b64u => bytesToSha1(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-        'sha256': b64u => bytesToSha256(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-        'sha512': b64u => bytesToSha512(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-        'sha3': b64u => bytesToSha3(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-        'sha512-256': b64u => bytesToSha512_256(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-        'crc32': b64u => bytesToCrc32(CryptoJS.enc.Base64.parse(b64UrlToB64(b64u))),
-    },
-    'url': {
-        'text': decodeURIComponent,
-        'hex': url => textToHex(decodeURIComponent(url)),
-        'base64': url => btoa(decodeURIComponent(url)),
-        'base64url': url => b64ToB64Url(btoa(decodeURIComponent(url))),
-        'morse': url => textToMorse(decodeURIComponent(url)),
-        'bytes': url => new TextEncoder().encode(decodeURIComponent(url)).join(' '),
-        'binary': url => bytesToBinary(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-
-        'md5': url => bytesToMd5(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-        'sha1': url => bytesToSha1(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-        'sha256': url => bytesToSha256(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-        'sha512': url => bytesToSha512(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-        'sha3': url => bytesToSha3(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-        'sha512-256': url => bytesToSha512_256(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-
-        'crc32': url => bytesToCrc32(CryptoJS.enc.Utf8.parse(decodeURIComponent(url))),
-    },
-    'morse': {
-        'text': morseToText,
-        'hex': morse => textToHex(morseToText(morse)),
-        'base64': morse => btoa(morseToText(morse)),
-        'url': morse => encodeURIComponent(morseToText(morse)),
-        'base64url': morse => b64ToB64Url(btoa(morseToText(morse))),
-        'bytes': morse => wordarrayToBytes(CryptoJS.enc.Utf8.parse(morseToText(morse))).join(' '),
-        'binary': morse => bytesToBinary(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-
-        'md5': morse => bytesToMd5(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-        'sha1': morse => bytesToSha1(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-        'sha256': morse => bytesToSha256(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-        'sha512': morse => bytesToSha512(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-        'sha3': morse => bytesToSha3(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-        'sha512-256': morse => bytesToSha512_256(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-
-        'crc32': morse => bytesToCrc32(CryptoJS.enc.Utf8.parse(morseToText(morse))),
-    },
-
-    'bytes': {
-        'text': btext => new TextDecoder().decode(btextToBytes(btext)),
-        'hex': btext => btextToBytes(btext).toHex(),
-        'base64': btext => btoa(new TextDecoder().decode(btextToBytes(btext))),
-        'url': btext => encodeURIComponent(new TextDecoder().decode(btextToBytes(btext))),
-        'base64url': btext => b64ToB64Url(btoa(new TextDecoder().decode(btextToBytes(btext)))),
-        'morse': btext => textToMorse(new TextDecoder().decode(btextToBytes(btext))),
-        'bytes': btext => btext,
-        'binary': btext => bytesToBinary(btextToBytes(btext)),
-
-        'md5': btext => bytesToMd5(btextToBytes(btext)),
-        'sha1': btext => bytesToSha1(btextToBytes(btext)),
-        'sha256': btext => bytesToSha256(btextToBytes(btext)),
-        'sha512': btext => bytesToSha512(btextToBytes(btext)),
-        'sha3': btext => bytesToSha3(btextToBytes(btext)),
-        'sha512-256': btext => bytesToSha512_256(btextToBytes(btext)),
-
-        'crc32': btext => bytesToCrc32(btextToBytes(btext)),
-    },
-    'binary': {
-        'text': binary => new TextDecoder().decode(binaryToBytes(binary)),
-        'hex': binary => textToHex(new TextDecoder().decode(binaryToBytes(binary))),
-        'base64': binary => btoa(new TextDecoder().decode(binaryToBytes(binary))),
-        'url': binary => encodeURIComponent(new TextDecoder().decode(binaryToBytes(binary))),
-        'base64url': binary => b64ToB64Url(btoa(new TextDecoder().decode(binaryToBytes(binary)))),
-        'morse': binary => textToMorse(new TextDecoder().decode(binaryToBytes(binary))),
-        'bytes': binary => binaryToBytes(binary).join(' '),
-        'binary': binary => binary,
-
-        'md5': binary => bytesToMd5(binaryToBytes(binary)),
-        'sha1': binary => bytesToSha1(binaryToBytes(binary)),
-        'sha256': binary => bytesToSha256(binaryToBytes(binary)),
-        'sha512': binary => bytesToSha512(binaryToBytes(binary)),
-        'sha3': binary => bytesToSha3(binaryToBytes(binary)),
-        'sha512-256': binary => bytesToSha512_256(binaryToBytes(binary)),
-
-        'crc32': binary => bytesToCrc32(binaryToBytes(binary)),
-    }
-}
-
-
-// Validate all formats have a valid conversion
-for (const inputFormat of Object.keys(fromFormats)) {
-    for (const outputFormat of Object.keys(toFormats)) {
-        if (inputFormat == outputFormat) continue
-        // Check if the converter exists
-        if (!(inputFormat in converters) || !(outputFormat in converters[inputFormat])) {
-            console.error(`Missing converter for ${inputFormat} to ${outputFormat}`)
-        }
-    }
 }
 
 // Do a conversion on load in case the user has a value in the input field and they are just refreshing the page

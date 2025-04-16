@@ -57,11 +57,6 @@ const fromFormats = {
         },
         'convert': input => new TextEncoder().encode(decodeURIComponent(input))
     },
-    'morse': {
-        'name': 'Morse Code',
-        'validator': input => /^[\s.-]+$/.test(input),
-        'convert': input => new TextEncoder().encode(morseToText(input))
-    },
     'bytes': {
         'name': 'Byte Array',
         'validator': input => {
@@ -79,7 +74,12 @@ const fromFormats = {
         'name': 'Binary',
         'validator': input => /^[01\s]+$/.test(input),
         'convert': input => binaryToBytes(input)
-    }
+    },
+    'morse': {
+        'name': 'Morse Code',
+        'validator': input => /^[\s.-]+$/.test(input),
+        'convert': input => new TextEncoder().encode(morseToText(input))
+    },
 }
 
 const toFormats = {
@@ -103,10 +103,6 @@ const toFormats = {
         'name': 'Base64 URL',
         'convert': input => b64ToB64Url(bytesToBase64(input))
     },
-    'morse': {
-        'name': 'Morse Code',
-        'convert': input => textToMorse(new TextDecoder().decode(input))
-    },
     'bytes': {
         'name': 'Byte Array',
         'convert': input => bytesToBtext(input)
@@ -114,6 +110,10 @@ const toFormats = {
     'binary': {
         'name': 'Binary',
         'convert': input => bytesToBinary(input)
+    },
+    'morse': {
+        'name': 'Morse Code',
+        'convert': input => textToMorse(new TextDecoder().decode(input))
     },
 
     // Hashes
@@ -143,6 +143,16 @@ const toFormats = {
         'name': 'CRC32 Checksum',
         'convert': input => bytesToCrc32(input),
     },
+
+    // Misc
+    'words': {
+        'name': 'Word Count',
+        'convert': input => {
+            const text = new TextDecoder().decode(input)
+            const words = text.match(/\w+/g) || [] // Counting whitespaces is not enough for word count.
+            return words.length.toString()
+        },
+    }
 }
 console.log(`Loaded formats from configuration: input=${Object.keys(fromFormats).length}, output=${Object.keys(toFormats).length}.`)
 

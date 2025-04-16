@@ -144,6 +144,7 @@ const toFormats = {
         'convert': input => bytesToCrc32(input),
     },
 }
+console.log(`Loaded formats from configuration: input=${Object.keys(fromFormats).length}, output=${Object.keys(toFormats).length}.`)
 
 
 
@@ -179,7 +180,7 @@ for (const [key, value] of Object.entries(fromFormats)) {
 }
 if (inputFormat != null && inputFormat in fromFormats) {
     fromFormatSelector.value = inputFormat
-    console.log(`Input format set to ${inputFormat} from query params`)
+    console.log(`query_load input=${inputFormat}`)
 }
 else {
     fromFormatSelector.value = defaultInputFormat
@@ -193,17 +194,15 @@ for (const [key, value] of Object.entries(toFormats)) {
 }
 if (outputFormat != null && outputFormat in toFormats) {
     toFormatSelector.value = outputFormat
-    console.log(`Output format set to ${outputFormat} from query params`)
+    console.log(`query_load output=${outputFormat}`)
 }
 else {
     toFormatSelector.value = defaultOutputFormat
 }
 
-console.log(`Added ${Object.keys(fromFormats).length} formats to input format selector.`)
-console.log(`Added ${Object.keys(toFormats).length} formats to output format selector.`)
-
-// Set default input value
+// Update query params to reflect defaults if not set
 updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
+console.log(`Updated query parameters to reflect defaults if not set.`)
 
 
 
@@ -260,9 +259,10 @@ casingOptions.forEach(option => {
         convertEvent()
     })
 })
+console.log("Attached event listeners.")
 
 
-// Helper functions
+// Functions
 function updateQueryParams(from, to) {
     const url = new URL(window.location.href)
     url.searchParams.set('from', from)
@@ -289,13 +289,20 @@ function updateInputValidation() {
     }
 }
 
-function updateOutput(output) {
-    const outputSize = output.length
-    outputSizeLabel.innerText = `[${outputSize}]`
-    outputText.value = applyCasing(output)
+function updateOutputSizeLabel(size) {
+    outputSizeLabel.innerText = `[${size}]`
 }
 
-function applyCasing(output) {
+function updateOutput(output) {
+    updateOutputSizeLabel(output.length)
+    outputText.value = output
+}
+
+function postprocessOutput(output) {
+    return applyCasingSetting(output)
+}
+
+function applyCasingSetting(output) {
     const activeCasing = document.querySelector(".casing-option.active").dataset.casing
     if (activeCasing === "uppercase") {
         return output.toUpperCase()
@@ -331,13 +338,15 @@ function convertEvent() {
         return
     }
 
-    // Convert input to bytes
-    const inputBytes = fromFormats[fromFormat].convert(input)
-    // Convert bytes to output format
-    const convertedOutput = toFormats[toFormat].convert(inputBytes)
+    
+    const inputBytes = fromFormats[fromFormat].convert(input) // Convert input to bytes
+    const convertedOutput = toFormats[toFormat].convert(inputBytes) // Convert bytes to output format
+    const processedOutput = postprocessOutput(convertedOutput)
 
-    updateOutput(convertedOutput)
+    updateOutput(processedOutput)
 }
 
 // Do a conversion on load in case the user has a value in the input field and they are just refreshing the page
 convertEvent()
+console.log("Conversion on load complete.")
+console.log("DONE.")

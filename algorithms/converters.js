@@ -81,6 +81,59 @@ function bytesToBtext(bytes) {
 }
 
 
+// Base32 <=> Bytes
+const base32EncodingAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+function base32ToBytes(base32) {
+    const bytes = []
+    let buffer = 0
+    let bitsLeft = 0
+
+    base32 = base32.toUpperCase()
+
+    for (let char of base32) {
+        if (char === '=') break
+        const value = base32EncodingAlphabet.indexOf(char)
+        if (value === -1) continue
+
+        buffer = (buffer << 5) | value
+        bitsLeft += 5
+
+        while (bitsLeft >= 8) {
+            bytes.push((buffer >> (bitsLeft - 8)) & 0xFF)
+            bitsLeft -= 8
+        }
+    }
+
+    return new Uint8Array(bytes)
+}
+function bytesToBase32(bytes) {
+    
+    let base32 = ''
+    let buffer = 0
+    let bitsLeft = 0
+    
+    for (let byte of bytes) {
+        buffer = (buffer << 8) | byte
+        bitsLeft += 8
+
+        while (bitsLeft >= 5) {
+            base32 += base32EncodingAlphabet[(buffer >> (bitsLeft - 5)) & 0x1F]
+            bitsLeft -= 5
+        }
+    }
+
+    if (bitsLeft > 0) {
+        base32 += base32EncodingAlphabet[(buffer << (5 - bitsLeft)) & 0x1F]
+    }
+
+    while (base32.length % 8 !== 0) {
+        base32 += '='
+    }
+
+    return base32
+}
+
+
 // Base64 <=> Bytes
 function base64ToBytes(base64) {
     const binaryString = atob(base64)

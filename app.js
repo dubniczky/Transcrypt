@@ -33,6 +33,18 @@ const fromFormats = {
         },
         'convert': input => octalToBytes(input)
     },
+    'base32': {
+        'name': 'Base32',
+        'validator': input => {
+            try {
+                base32ToBytes(input)
+                return true
+            } catch {
+                return false
+            }
+        },
+        'convert': input => base32ToBytes(input)
+    },
     'base64': {
         'name': 'Base64',
         'validator': input => {
@@ -128,6 +140,10 @@ const toFormats = {
     'octal': {
         'name': 'Octal',
         'convert': input => bytesToOctal(input)
+    },
+    'base32': {
+        'name': 'Base32',
+        'convert': input => bytesToBase32(input)
     },
     'base64': {
         'name': 'Base64',

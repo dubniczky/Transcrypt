@@ -142,6 +142,39 @@ const fromFormats = {
         },
         'convert': input => hexdumpToBytes(input)
     },
+    'ipv4': {
+        'name': 'IPv4 Address',
+        'validator': input => {
+            const parts = input.split('.')
+            if (parts.length !== 4) {
+                return false
+            }
+            for (let i = 0; i < parts.length; i++) {
+                const part = parseInt(parts[i])
+                if (isNaN(part) || part < 0 || part > 255) {
+                    return false
+                }
+            }
+            return true
+        },
+        'convert': input => ipv4ToBytes(input)
+    },
+    'ipv6': {
+        'name': 'IPv6 Address',
+        'validator': input => {
+            const parts = input.split(':')
+            if (parts.length > 8) {
+                return false
+            }
+            for (let i = 0; i < parts.length; i++) {
+                if (parts[i].length > 4 || !/^[0-9a-f]{0,4}$/i.test(parts[i])) {
+                    return false
+                }
+            }
+            return true
+        },
+        'convert': input => ipv6ToBytes(input)
+    }
 }
 
 
@@ -218,6 +251,14 @@ const toFormats = {
     'hexdump': {
         'name': 'Hex Dump',
         'convert': input => bytesToHexDump(input)
+    },
+    'ipv4': {
+        'name': 'IPv4 Address',
+        'convert': input => bytesToIpv4(input)
+    },
+    'ipv6': {
+        'name': 'IPv6 Address',
+        'convert': input => bytesToIpv6(input)
     },
 
     // Hashes

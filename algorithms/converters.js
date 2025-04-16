@@ -255,6 +255,115 @@ function hexdumpToBytes(hexdump) {
 }
 
 
+// IPv4 Address <=> Bytes
+function ipv4ToBytes(ipv4) {
+    const parts = ipv4.split('.')
+    const bytes = new Uint8Array(4)
+    for (let i = 0; i < 4; i++) {
+        bytes[i] = parseInt(parts[i], 10)
+    }
+    return bytes
+}
+function bytesToIpv4(bytes) {
+    if (bytes.length !== 4) {
+        return 'Invalid IPv4 length! 4 bytes required. Current: ' + bytes.length
+    }
+    return Array.from(bytes).join('.')
+}
+
+
+// IPv6 Address <=> Bytes
+/**
+ * @param {string} ipv6
+ * @returns {Uint8Array}
+ */
+function ipv6ToBytes(ipv6) {
+    // Uncompress IPv6 address from '::' format
+    const parts = ipv6.split('::')
+
+    let head = parts[0] ? parts[0].split(':') : []
+    let tail = parts[1] ? parts[1].split(':') : []
+
+    // Total number of segments should be 8
+    const missingCount = 8 - (head.length + tail.length)
+
+    if (parts.length > 2 || missingCount < 0) {
+        throw new Error('Invalid IPv6 address')
+    }
+
+    const zeros = new Array(missingCount).fill('0000');
+    const full = [...head, ...zeros, ...tail].map(seg =>
+        seg.padStart(4, '0')
+    );
+
+    if (missingCount < 0) {
+        return new Uint8Array(0)
+    }
+
+    // Convert each segment to bytes
+    const bytes = new Uint8Array(16)
+
+    for (let i = 0; i < 8; i++) {
+        bytes[i * 2] = parseInt(full[i], 16) >> 8
+        bytes[i * 2 + 1] = parseInt(full[i], 16) & 0xFF
+    }
+    return bytes
+}
+function bytesToIpv6(bytes) {
+    if (bytes.length !== 16) {
+        return 'Invalid IPv6 length! 16 bytes required. Current: ' + bytes.length
+    }
+
+    // Convert bytes to hex segments
+    let ipv6 = ''
+    for (let i = 0; i < 8; i++) {
+        const byte1 = bytes[i * 2].toString(16).padStart(2, '0')
+        const byte2 = bytes[i * 2 + 1].toString(16).padStart(2, '0')
+        ipv6 += byte1 + byte2 + ':'
+    }
+    ipv6 = ipv6.slice(0, -1)
+
+
+    // Compress address
+    const segments = ipv6.split(':').map(seg => seg.replace(/^0+/, '') || '0');
+
+    let bestStart = -1;
+    let bestLength = 0;
+  
+    let currentStart = -1;
+    let currentLength = 0;
+  
+    for (let i = 0; i < segments.length; i++) {
+      if (segments[i] === '0') {
+        if (currentStart === -1) currentStart = i;
+        currentLength++;
+      } else {
+        if (currentLength > bestLength) {
+          bestStart = currentStart;
+          bestLength = currentLength;
+        }
+        currentStart = -1;
+        currentLength = 0;
+      }
+    }
+  
+    // Final check at end
+    if (currentLength > bestLength) {
+        bestStart = currentStart
+        bestLength = currentLength
+    }
+  
+    // If we found a compressible zero sequence
+    if (bestLength > 1) {
+      segments.splice(bestStart, bestLength, '');
+      if (bestStart === 0) segments.unshift(''); // Leading ::
+      if (bestStart + bestLength === 8) segments.push(''); // Trailing ::
+    }
+  
+    return segments.join(':').replace(/:{3,}/, '::'); // Ensure "::" not more than once
+}
+
+
 // Bytes => Hashes
 function bytesToMd5(bytes) {
     return CryptoJS.MD5(bytesToWordarray(bytes)).toString()

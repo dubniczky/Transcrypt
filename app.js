@@ -90,7 +90,7 @@ const fromFormats = {
     },
     'morse': {
         'name': 'Morse Code',
-        'validator': input => /^[\s.-]+$/.test(input),
+        'validator': input => input == '' || /^[\s.-]+$/.test(input),
         'convert': input => new TextEncoder().encode(morseToText(input))
     },
     'uuid4': {

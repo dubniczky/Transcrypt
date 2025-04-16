@@ -14,5 +14,5 @@ function textToMorse(text) {
 }
 function morseToText(morse) {
     const morseToChar = Object.fromEntries(Object.entries(morseAlphabet).map(([k, v]) => [v, k]))
-    return morse.split(' ').map(code => morseToChar[code] || '').join('')
+    return morse.split(' ').map(code => morseToChar[code] || ' ').join('')
 }

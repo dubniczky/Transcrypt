@@ -364,6 +364,21 @@ function bytesToIpv6(bytes) {
 }
 
 
+// ISO 8601 Time <=> Bytes
+function iso8601ToBytes(iso8601) {
+    const date = new Date(iso8601)
+    if (isNaN(date.getTime())) {
+        throw new Error('Invalid ISO 8601 date string')
+    }
+    return new Uint8Array(date.getTime().toString().split('').map(Number))
+}
+function bytesToIso8601(bytes) {
+    const timestamp = bytes.reduce((acc, byte) => acc + byte, '')
+    const date = new Date(Number(timestamp))
+    return date.toISOString()
+}
+
+
 // Bytes => Hashes
 function bytesToMd5(bytes) {
     return CryptoJS.MD5(bytesToWordarray(bytes)).toString()

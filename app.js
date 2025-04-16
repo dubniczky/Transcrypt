@@ -97,13 +97,13 @@ const fromFormats = {
     'decimal': {
         'name': 'Decimal',
         'validator': input => {
-            const bytes = input.split(' ')
-            for (let i = 0; i < bytes.length; i++) {
-                if (isNaN(parseInt(bytes[i])) || parseInt(bytes[i]) < 0) {
-                    return false
-                }
+            try {
+                decimalToBytes(input)
+                return true
             }
-            return true
+            catch {
+                return false
+            }
         },
         'convert': input => decimalToBytes(input)
     },
@@ -174,6 +174,19 @@ const fromFormats = {
             return true
         },
         'convert': input => ipv6ToBytes(input)
+    },
+    'iso8601': {
+        'name': 'ISO 8601 Timestamp',
+        'validator': input => {
+            try {
+                iso8601ToBytes(input)
+                return true
+            }
+            catch {
+                return false
+            }
+        },
+        'convert': input => iso8601ToBytes(input)
     }
 }
 
@@ -259,6 +272,10 @@ const toFormats = {
     'ipv6': {
         'name': 'IPv6 Address',
         'convert': input => bytesToIpv6(input)
+    },
+    'iso8601': {
+        'name': 'ISO 8601 Timestamp',
+        'convert': input => bytesToIso8601(input)
     },
 
     // Hashes

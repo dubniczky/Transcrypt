@@ -134,6 +134,25 @@ function bytesToBase32(bytes) {
 }
 
 
+// HTML Entities <=> Bytes
+function htmlentitiesToBytes(htmlentities) {
+    const text = htmlentities.replace(/&#(\d+);/g, function(match, dec) {
+        return String.fromCharCode(dec)
+    })
+    const bytes = new Uint8Array(text.length)
+    for (let i = 0; i < text.length; i++) {
+        bytes[i] = text.charCodeAt(i)
+    }
+    return bytes
+}
+function bytesToHtmlentities(bytes) {
+    const text = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '')
+    return text.replace(/[\u00A0-\u9999<>&"']/gim, function(char) {
+        return `&#${char.charCodeAt(0)};`
+    })
+}
+
+
 // Base64 <=> Bytes
 function base64ToBytes(base64) {
     const binaryString = atob(base64)

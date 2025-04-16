@@ -107,6 +107,11 @@ const fromFormats = {
         },
         'convert': input => decimalToBytes(input)
     },
+    'htmlentities': {
+        'name': 'HTML Entities',
+        'validator': input => true, // It can be any text
+        'convert': input => htmlentitiesToBytes(input)
+    },
     'binary': {
         'name': 'Binary',
         'validator': input => /^[01\s]+$/.test(input),
@@ -168,6 +173,10 @@ const toFormats = {
     'decimal': {
         'name': 'Decimal',
         'convert': input => bytesToDecimal(input)
+    },
+    'htmlentities': {
+        'name': 'HTML Entities',
+        'convert': input => bytesToHtmlentities(input)
     },
     'morse': {
         'name': 'Morse Code',

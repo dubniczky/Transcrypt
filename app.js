@@ -10,7 +10,7 @@ const fromFormats = {
         'name': 'HEX',
         'validator': input => {
             try {
-                Uint8Array.fromHex(input)
+                hexToBytes(input)
                 return true
             } catch {
                 return false
@@ -21,7 +21,7 @@ const fromFormats = {
         'name': 'Base64',
         'validator': input => {
             try {
-                Uint8Array.fromBase64(input)
+                atob(input)
                 return true
             } catch {
                 return false
@@ -32,7 +32,7 @@ const fromFormats = {
         'name': 'Base64 URL',
         'validator': input => {
             try {
-                Uint8Array.fromBase64(b64UrlToB64(input))
+                atob(b64UrlToB64(input))
                 return true
             } catch {
                 return false

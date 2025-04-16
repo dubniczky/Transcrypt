@@ -50,6 +50,23 @@ function bytesToHex(bytes) {
 }
 
 
+// Octal <=> Bytes
+function octalToBytes(octal) {
+    const bytes = new Uint8Array(octal.length / 3)
+    for (let i = 0; i < octal.length; i += 3) {
+        bytes[i / 3] = parseInt(octal.substr(i, 3), 8)
+    }
+    return bytes
+}
+function bytesToOctal(bytes) {
+    let octal = ''
+    for (let i = 0; i < bytes.length; i++) {
+        octal += ('000' + bytes[i].toString(8)).slice(-3)
+    }
+    return octal
+}
+
+
 // Byte Array (text) <=> bytes
 function btextToBytes(btext) {
     const bints = btext.split(' ')

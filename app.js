@@ -21,6 +21,18 @@ const fromFormats = {
         },
         'convert': input => hexToBytes(input)
     },
+    'octal': {
+        'name': 'Octal',
+        'validator': input => {
+            try {
+                octalToBytes(input)
+                return true
+            } catch {
+                return false
+            }
+        },
+        'convert': input => octalToBytes(input)
+    },
     'base64': {
         'name': 'Base64',
         'validator': input => {
@@ -112,6 +124,10 @@ const toFormats = {
     'hex': {
         'name': 'HEX',
         'convert': input => bytesToHex(input)
+    },
+    'octal': {
+        'name': 'Octal',
+        'convert': input => bytesToOctal(input)
     },
     'base64': {
         'name': 'Base64',

@@ -349,7 +349,7 @@ const converters = {
         'crc32': hex => bytesToCrc32(CryptoJS.enc.Hex.parse(hex)),
     },
     'base64': {
-        'text': atob,
+        'text': base64 => atob(base64),
         'hex': base64 => textToHex(atob(base64)),
         'url': base64 => encodeURIComponent(atob(base64)),
         'base64url': b64ToB64Url,

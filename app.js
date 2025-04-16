@@ -70,6 +70,19 @@ const fromFormats = {
         },
         'convert': input => btextToBytes(input)
     },
+    'decimal': {
+        'name': 'Decimal',
+        'validator': input => {
+            const bytes = input.split(' ')
+            for (let i = 0; i < bytes.length; i++) {
+                if (isNaN(parseInt(bytes[i])) || parseInt(bytes[i]) < 0) {
+                    return false
+                }
+            }
+            return true
+        },
+        'convert': input => decimalToBytes(input)
+    },
     'binary': {
         'name': 'Binary',
         'validator': input => /^[01\s]+$/.test(input),
@@ -89,6 +102,7 @@ const fromFormats = {
         'convert': input => hexToBytes(input.replace(/-/g, ''))
     }
 }
+
 
 const toFormats = {
     'text': {
@@ -119,6 +133,10 @@ const toFormats = {
         'name': 'Binary',
         'convert': input => bytesToBinary(input)
     },
+    'decimal': {
+        'name': 'Decimal',
+        'convert': input => bytesToDecimal(input)
+    },
     'morse': {
         'name': 'Morse Code',
         'convert': input => textToMorse(new TextDecoder().decode(input))
@@ -126,7 +144,7 @@ const toFormats = {
     'uuid4': {
         'name': 'UUIDv4',
         'convert': input => {
-            if (!input.length !== 16) {
+            if (input.length !== 16) {
                 return 'Invalid UUIDv4 length! 16 bytes required. Current: ' + input.length
             }
           

@@ -111,6 +111,19 @@ function bytesToBinary(bytes) {
     return binary
 }
 
+// Big int (text) <=> Bytes
+function decimalToBytes(bigint) {
+    const hex = BigInt(bigint).toString(16)
+    return hexToBytes(hex)
+}
+function bytesToDecimal(bytes) {
+    let hex = ''
+    for (let i = 0; i < bytes.length; i++) {
+        hex += ('0' + bytes[i].toString(16)).slice(-2)
+    }
+    return BigInt('0x' + hex).toString()
+}
+
 
 // Bytes => Hashes
 function bytesToMd5(bytes) {

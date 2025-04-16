@@ -10,7 +10,7 @@ const fromFormats = {
         'convert': input => new TextEncoder().encode(input)
     },
     'hex': {
-        'name': 'HEX',
+        'name': 'Hex',
         'validator': input => {
             try {
                 hexToBytes(input)
@@ -129,7 +129,19 @@ const fromFormats = {
             return uuidRegex.test(input)
         },
         'convert': input => hexToBytes(input.replace(/-/g, ''))
-    }
+    },
+    'hexdump': {
+        'name': 'Hex Dump',
+        'validator': input => {
+            try {
+                hexdumpToBytes(input)
+                return true
+            } catch {
+                return false
+            }
+        },
+        'convert': input => hexdumpToBytes(input)
+    },
 }
 
 
@@ -139,7 +151,7 @@ const toFormats = {
         'convert': input => new TextDecoder().decode(input)
     },
     'hex': {
-        'name': 'HEX',
+        'name': 'Hex',
         'convert': input => bytesToHex(input)
     },
     'octal': {
@@ -202,6 +214,10 @@ const toFormats = {
                 hex.slice(10, 16).join('')
             ].join('-')
         }
+    },
+    'hexdump': {
+        'name': 'Hex Dump',
+        'convert': input => bytesToHexDump(input)
     },
 
     // Hashes

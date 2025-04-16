@@ -214,6 +214,47 @@ function bytesToDecimal(bytes) {
 }
 
 
+// Hexdump <=> Bytes
+function bytesToHexDump(bytes) {
+    const lineSize = 16
+    let hexDump = ''
+
+    for (let i = 0; i < bytes.length; i += lineSize) {
+        const offset = i.toString(16).padStart(8, '0') // Offset in hex
+        const lineBytes = bytes.slice(i, i + lineSize)
+        const hexPart = Array.from(lineBytes)
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join(' ')
+        const asciiPart = Array.from(lineBytes)
+            .map(byte => (byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.'))
+            .join('')
+
+        hexDump += `${offset}  ${hexPart.padEnd(lineSize * 3)} ${asciiPart}\n`
+    }
+
+    return hexDump.trim()
+}
+function hexdumpToBytes(hexdump) {
+    const lines = hexdump.split('\n')
+    const bytes = []
+
+    for (const line of lines) {
+        const parts = line.trim().split(' ')
+        if (parts.length < 2) continue // Skip empty or malformed lines
+
+        // Skip the offset part
+        for (let i = 1; i < parts.length - 1; i++) {
+            const byte = parseInt(parts[i], 16)
+            if (!isNaN(byte)) {
+                bytes.push(byte)
+            }
+        }
+    }
+
+    return new Uint8Array(bytes)
+}
+
+
 // Bytes => Hashes
 function bytesToMd5(bytes) {
     return CryptoJS.MD5(bytesToWordarray(bytes)).toString()

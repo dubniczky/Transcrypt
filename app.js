@@ -119,27 +119,23 @@ const toFormats = {
     // Hashes
     'md5': {
         'name': 'MD5 Hash',
-        'convert': input => CryptoJS.MD5(bytesToWordarray(input)).toString(),
+        'convert': input => bytesToMd5(input),
     },
     'sha1': {
         'name': 'SHA1 Hash',
-        'convert': input => CryptoJS.SHA1(bytesToWordarray(input)).toString(),
+        'convert': input => bytesToSha1(input),
     },
     'sha256': {
         'name': 'SHA256 Hash',
-        'convert': input => CryptoJS.SHA256(bytesToWordarray(input)).toString(),
+        'convert': input => bytesToSha256(input),
     },
     'sha512': {
         'name': 'SHA512 Hash',
-        'convert': input => CryptoJS.SHA512(bytesToWordarray(input)).toString(),
+        'convert': input => bytesToSha512(input),
     },
     'sha3': {
         'name': 'SHA3 Hash',
-        'convert': input => CryptoJS.SHA3(bytesToWordarray(input)).toString(),
-    },
-    'sha512-256': {
-        'name': 'SHA512/256 Hash',
-        'convert': input => CryptoJS.SHA512(bytesToWordarray(input), { outputLength: 256 }).toString(),
+        'convert': input => bytesToSha3(input),
     },
 
     // Checksums

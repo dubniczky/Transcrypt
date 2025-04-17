@@ -187,6 +187,11 @@ const fromFormats = {
             }
         },
         'convert': input => iso8601ToBytes(input)
+    },
+    'rot13': {
+        'name': 'ROT13',
+        'validator': input => true, // It can be any text
+        'convert': input => rot13ToBytes(input)
     }
 }
 
@@ -314,6 +319,10 @@ const toFormats = {
             const words = text.match(/\w+/g) || [] // Counting whitespaces is not enough for word count.
             return words.length.toString()
         },
+    },
+    'rot13': {
+        'name': 'ROT13',
+        'convert': input => bytesToRot13(input)
     }
 }
 console.log(`Loaded formats from configuration: input=${Object.keys(fromFormats).length}, output=${Object.keys(toFormats).length}.`)

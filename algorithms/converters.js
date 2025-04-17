@@ -399,3 +399,26 @@ function bytesToSha512(bytes) {
 function bytesToSha3(bytes) {
     return CryptoJS.SHA3(bytesToWordarray(bytes)).toString()
 }
+
+
+// ROT13 <=> Bytes
+function rot13ToBytes(rot13) {
+    return new Uint8Array(rot13.split('').map(char => {
+        if (char >= 'A' && char <= 'Z') {
+            return ((char.charCodeAt(0) - 'A'.charCodeAt(0) - 13 + 26) % 26) + 'A'.charCodeAt(0)
+        } else if (char >= 'a' && char <= 'z') {
+            return ((char.charCodeAt(0) - 'a'.charCodeAt(0) - 13 + 26) % 26) + 'a'.charCodeAt(0)
+        }
+        return char.charCodeAt(0)
+    }))
+}
+function bytesToRot13(bytes) {
+    return String.fromCharCode(...bytes.map(byte => {
+        if (byte >= 'A'.charCodeAt(0) && byte <= 'Z'.charCodeAt(0)) {
+            return ((byte - 'A'.charCodeAt(0) + 13) % 26) + 'A'.charCodeAt(0)
+        } else if (byte >= 'a'.charCodeAt(0) && byte <= 'z'.charCodeAt(0)) {
+            return ((byte - 'a'.charCodeAt(0) + 13) % 26) + 'a'.charCodeAt(0)
+        }
+        return byte
+    }))
+}

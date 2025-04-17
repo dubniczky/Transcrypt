@@ -192,6 +192,11 @@ const fromFormats = {
         'name': 'ROT13',
         'validator': input => true, // It can be any text
         'convert': input => rot13ToBytes(input)
+    },
+    'reverse': {
+        'name': 'Reverse Text',
+        'validator': input => true, // It can be any text
+        'convert': input => new TextEncoder().encode(input.split('').reverse().join(''))
     }
 }
 
@@ -323,7 +328,14 @@ const toFormats = {
     'rot13': {
         'name': 'ROT13',
         'convert': input => bytesToRot13(input)
-    }
+    },
+    'reverse': {
+        'name': 'Reverse text',
+        'convert': input => {
+            const text = new TextDecoder().decode(input)
+            return text.split('').reverse().join('')
+        }
+    },
 }
 console.log(`Loaded formats from configuration: input=${Object.keys(fromFormats).length}, output=${Object.keys(toFormats).length}.`)
 

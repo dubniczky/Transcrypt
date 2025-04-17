@@ -107,6 +107,18 @@ const fromFormats = {
         },
         'convert': input => decimalToBytes(input)
     },
+    'ascii85': {
+        'name': 'ASCII 85',
+        'validator': input => {
+            try {
+                ascii85ToBytes(input)
+                return true
+            } catch {
+                return false
+            }
+        },
+        'convert': input => ascii85ToBytes(input)
+    },
     'htmlentities': {
         'name': 'HTML Entities',
         'validator': input => true, // It can be any text
@@ -241,6 +253,10 @@ const toFormats = {
     'decimal': {
         'name': 'Decimal',
         'convert': input => bytesToDecimal(input)
+    },
+    'ascii85': {
+        'name': 'ASCII 85',
+        'convert': input => bytesToAscii85(input)
     },
     'htmlentities': {
         'name': 'HTML Entities',

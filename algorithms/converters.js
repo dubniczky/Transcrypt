@@ -379,6 +379,75 @@ function bytesToIso8601(bytes) {
 }
 
 
+// Ascii85 <=> Bytes
+function ascii85ToBytes(input) {
+    const cleaned = input.replace(/\s+/g, '').replace(/z/g, '!!!!!'); // handle 'z' shorthand
+    const output = [];
+  
+    for (let i = 0; i < cleaned.length; i += 5) {
+      const chunk = cleaned.slice(i, i + 5);
+      let value = 0;
+  
+      // Pad short chunks with 'u' (ASCII 117, value 84)
+      const paddedLength = chunk.length;
+      const paddedChunk = chunk.padEnd(5, 'u');
+  
+      for (let j = 0; j < 5; j++) {
+        const code = paddedChunk.charCodeAt(j);
+        if (code < 33 || code > 117) {
+          throw new Error(`Invalid character in ASCII85 block: ${paddedChunk[j]}`);
+        }
+        value = value * 85 + (code - 33);
+      }
+  
+      // Extract 4 bytes
+      const bytes = [
+        (value >>> 24) & 0xFF,
+        (value >>> 16) & 0xFF,
+        (value >>> 8) & 0xFF,
+        value & 0xFF,
+      ];
+  
+      // Push only relevant bytes if it was padded
+      output.push(...bytes.slice(0, paddedLength - 1));
+    }
+  
+    return new Uint8Array(output);
+  }
+  
+function bytesToAscii85(bytes) {
+    const result = [];
+    const length = bytes.length;
+    let i = 0;
+  
+    while (i < length) {
+      // Get up to 4 bytes (pad with 0s if fewer than 4)
+      let chunk = 0;
+      const remaining = Math.min(4, length - i);
+      for (let j = 0; j < 4; j++) {
+        chunk <<= 8;
+        chunk |= (i + j < length) ? bytes[i + j] : 0;
+      }
+  
+      if (chunk === 0 && remaining === 4) {
+        result.push('z'); // compression shortcut for 0
+      } else {
+        const chars = new Array(5);
+        for (let k = 4; k >= 0; k--) {
+          chars[k] = String.fromCharCode((chunk % 85) + 33);
+          chunk = Math.floor(chunk / 85);
+        }
+        result.push(...chars.slice(0, Math.ceil((remaining + 1) * 5 / 4)));
+      }
+  
+      i += 4;
+    }
+  
+    return result.join('')
+  }
+  
+
+
 // Bytes => Hashes
 function bytesToMd5(bytes) {
     return CryptoJS.MD5(bytesToWordarray(bytes)).toString()

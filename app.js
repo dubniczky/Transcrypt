@@ -305,10 +305,6 @@ const toFormats = {
         'name': 'SHA512 Hash',
         'convert': input => bytesToSha512(input),
     },
-    'sha3': {
-        'name': 'SHA3 Hash',
-        'convert': input => bytesToSha3(input),
-    },
 
     // Checksums
     'crc32': {

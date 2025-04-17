@@ -396,10 +396,6 @@ function bytesToSha512(bytes) {
     return CryptoJS.SHA512(bytesToWordarray(bytes)).toString()
 }
 
-function bytesToSha3(bytes) {
-    return CryptoJS.SHA3(bytesToWordarray(bytes)).toString()
-}
-
 
 // ROT13 <=> Bytes
 function rot13ToBytes(rot13) {

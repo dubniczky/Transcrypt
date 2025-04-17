@@ -396,6 +396,19 @@ function bytesToSha512(bytes) {
     return CryptoJS.SHA512(bytesToWordarray(bytes)).toString()
 }
 
+function bytesToPbkdf2(bytes) {
+    const salt = new Uint8Array(16)
+    window.crypto.getRandomValues(salt)
+    const keySize = 256
+    const iterations = 350000
+    const digest = CryptoJS.PBKDF2(
+        bytesToWordarray(bytes),
+        bytesToWordarray(salt),
+        { keySize: keySize / 32, iterations: iterations }
+    ).toString()
+    return `pbkdf2$sha256$${iterations}$${bytesToHex(salt)}$${digest}`
+}
+
 
 // ROT13 <=> Bytes
 function rot13ToBytes(rot13) {

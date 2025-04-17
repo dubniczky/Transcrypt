@@ -305,6 +305,10 @@ const toFormats = {
         'name': 'SHA512 Hash',
         'convert': input => bytesToSha512(input),
     },
+    'pbkdf2': {
+        'name': 'PBKDF2 Hash',
+        'convert': input => bytesToPbkdf2(input),
+    },
 
     // Checksums
     'crc32': {

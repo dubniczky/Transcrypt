@@ -41,7 +41,7 @@ h2 {
     pointer-events: none;
     color: #FF8400;
 }
-#output-size {
+.size-label {
     font-size: 14px;
     color: #666;
     font-weight: lighter;

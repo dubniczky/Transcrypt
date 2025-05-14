@@ -366,6 +366,7 @@ const convertButton = document.getElementById("convert-button")
 const switchButton = document.getElementById("switch-button")
 const copyButton = document.getElementById("copy-button")
 const moveButton = document.getElementById("move-button")
+const inputSizeLabel = document.getElementById("input-size")
 const outputSizeLabel = document.getElementById("output-size")
 const ignoreLineBreaksCheckbox = document.getElementById("ignore-line-breaks")
 const casingSelector = document.getElementById("casing-selector")
@@ -502,6 +503,10 @@ function updateOutputSizeLabel(size) {
     outputSizeLabel.innerText = `[${size}]`
 }
 
+function updateInputSizeLabel(size) {
+    inputSizeLabel.innerText = `[${size}]`
+}
+
 function updateOutput(output) {
     updateOutputSizeLabel(output.length)
     outputText.value = output
@@ -549,6 +554,7 @@ function convertEvent() {
 
     
     const inputBytes = fromFormats[fromFormat].convert(input) // Convert input to bytes
+    updateInputSizeLabel(inputBytes.length)
     const convertedOutput = toFormats[toFormat].convert(inputBytes) // Convert bytes to output format
     const processedOutput = postprocessOutput(convertedOutput)
 

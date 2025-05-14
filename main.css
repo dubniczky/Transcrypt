@@ -19,6 +19,9 @@ html, body {
     flex: 1;
     resize: none;
 }
+textarea {
+    font-family: monospace;
+}
 .is-invalid {
     border-color: red !important;
     box-shadow: 0 0 5px red !important;

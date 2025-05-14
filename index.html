@@ -35,7 +35,7 @@
                     </select>
                 </div>
                 <div class="text-center mb-3">
-                    <button id="switch-button" class="btn btn-outline-secondary" title="Switch the input and output formats.">
+                    <button id="switch-button" class="btn btn-outline-secondary" title="Swap the input and output formats.">
                         <span>&uarr;&darr;</span>
                     </button>
                 </div>
@@ -44,7 +44,7 @@
                     <select id="to-format" class="form-select">
                     </select>
                 </div>
-                <div class="mb-3" title="Select how the output text casing should be formatted.">
+                <div class="mb-3" title="Select how the output text casing should be formatted. Aa: same as input, A: uppercase, a: lowercase.">
                     <label class="form-label">Output Casing</label>
                     <div class="casing-selector" id="casing-selector">
                         <div class="casing-option active" data-casing="none">Aa</div>
@@ -56,7 +56,7 @@
                     <input class="form-check-input" type="checkbox" id="ignore-line-breaks">
                     <label class="form-check-label" for="ignore-line-breaks">Ignore Line Breaks</label>
                 </div>
-                <button id="convert-button" class="btn btn-primary w-100" title="Convert the the input to the output field using the specified formats. Usually you don't need to use this button as any changes will reflect immediately.">Convert</button>
+                <button id="convert-button" class="btn btn-primary w-100" title="Convert the input to the output field using the specified formats. Usually you don't need to use this button as any changes to the input will reflect immediately in the output.">Convert</button>
                 <button id="copy-button" class="btn btn-secondary w-100 mt-2" title="Copy the output to the clipboard.">Copy</button>
                 <button id="move-button" class="btn btn-outline-secondary w-100 mt-2" title="Replace the Input with the current output.">Move</button>
                 <a id="credit-link" class="mt-auto text-center text-muted small" href="https://dubniczky.com" target="_blank" title="The author of this project.">

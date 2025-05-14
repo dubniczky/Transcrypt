@@ -371,9 +371,15 @@ const outputSizeLabel = document.getElementById("output-size")
 const ignoreLineBreaksCheckbox = document.getElementById("ignore-line-breaks")
 const casingSelector = document.getElementById("casing-selector")
 const casingOptions = document.querySelectorAll(".casing-option")
+const darkModeToggle = document.getElementById("dark-mode-toggle")
 console.log("Loaded controls.")
 
 
+// Check for saved preference in localStorage for dark mode
+if (localStorage.getItem("darkMode") === "enabled") {
+    document.body.classList.add("dark-mode")
+    darkModeToggle.checked = true
+}
 
 // Load query prams and set formats
 const urlParams = new URLSearchParams(window.location.search)
@@ -468,6 +474,15 @@ casingOptions.forEach(option => {
         option.classList.add("active")
         convertEvent()
     })
+})
+darkModeToggle.addEventListener("change", () => {
+    if (darkModeToggle.checked) {
+        document.body.classList.add("dark-mode")
+        localStorage.setItem("darkMode", "enabled") // Save preference
+    } else {
+        document.body.classList.remove("dark-mode")
+        localStorage.setItem("darkMode", "disabled") // Save preference
+    }
 })
 console.log("Attached event listeners.")
 

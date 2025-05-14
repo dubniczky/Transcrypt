@@ -26,7 +26,7 @@
     <body>
         <div class="d-flex">
             <!-- Sidebar -->
-            <div class="bg-light border-end p-3 d-flex flex-column" style="width: 250px; height: 100%; overflow-y: auto;">
+            <div id="sidebar" class="bg-light border-end p-3 d-flex flex-column" style="width: 250px; height: 100%; overflow-y: auto;">
                 <h2 class="text-center">{T}ran$crypt</h2>
                 <h2 class="text-center mirror">{T}ran$crypt</h2>
                 <div class="mb-3" title="The input format specifies how your input will be decoded as before conversion. For example if the input format is HEX, then the data will be converted to bytes from hex before it is converted to the target format.">
@@ -59,6 +59,12 @@
                 <button id="convert-button" class="btn btn-primary w-100" title="Convert the input to the output field using the specified formats. Usually you don't need to use this button as any changes to the input will reflect immediately in the output.">Convert</button>
                 <button id="copy-button" class="btn btn-secondary w-100 mt-2" title="Copy the output to the clipboard.">Copy</button>
                 <button id="move-button" class="btn btn-outline-secondary w-100 mt-2" title="Replace the Input with the current output.">Move</button>
+                
+                <div id="dark-mode-control" class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="dark-mode-toggle">
+                    <label class="form-check-label" for="dark-mode-toggle">Dark Mode</label>
+                </div>
+                
                 <a id="credit-link" class="mt-auto text-center text-muted small" href="https://dubniczky.com" target="_blank" title="The author of this project.">
                     By: Richard A. Dubniczky
                 </a>

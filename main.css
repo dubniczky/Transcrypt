@@ -73,3 +73,66 @@ h2 {
     background-color: #007bff;
     color: white;
 }
+
+/* Dark mode */
+
+#dark-mode-control {
+    margin-top: 10px;
+}
+
+body.dark-mode {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+body.dark-mode .bg-light {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .form-control {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border-color: #333333;
+}
+
+body.dark-mode .btn-primary {
+    background-color: #007bff;
+    border-color: #0056b3;
+}
+
+body.dark-mode .btn-outline-secondary {
+    color: #ffffff;
+    border-color: #666666;
+}
+
+body.dark-mode .casing-option.active {
+    background-color: #0056b3;
+    color: #ffffff;
+}
+
+body.dark-mode select.form-select {
+    background-color: #1e1e1e; /* Dark gray */
+    color: #ffffff; /* White text */
+    border: 1px solid #333333; /* Darker border */
+}
+
+body.dark-mode .casing-selector {
+    background-color: #1e1e1e; /* Dark gray */
+    border: 1px solid #333333; /* Darker border */
+}
+
+body.dark-mode .casing-option {
+    background-color: #1e1e1e; /* Dark gray */
+    color: #ffffff; /* White text */
+    border-right: 1px solid #333333; /* Darker border */
+}
+
+body.dark-mode .casing-option.active {
+    background-color: #0056b3; /* Darker blue for active */
+    color: #ffffff; /* White text */
+}
+
+body.dark-mode #sidebar {
+    border-right: 1px solid #333333 !important; /* Darker gray for dark mode */
+}

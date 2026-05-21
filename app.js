@@ -1,13 +1,18 @@
 // Set defaults
-const defaultInputFormat = 'text'
+const defaultInputFormat = 'utf8'
 const defaultOutputFormat = 'hex'
 
 
 const fromFormats = {
-    'text': {
-        'name': 'Text',
+    'utf8': {
+        'name': 'Text (UTF-8)',
         'validator': input => true,
         'convert': input => new TextEncoder().encode(input)
+    },
+    'utf16le': {
+        'name': 'Text (UTF-16LE)',
+        'validator': input => true,
+        'convert': input => utf16leToBytes(input)
     },
     'hex': {
         'name': 'Hex',
@@ -214,9 +219,13 @@ const fromFormats = {
 
 
 const toFormats = {
-    'text': {
-        'name': 'Text',
+    'utf8': {
+        'name': 'Text (UTF-8)',
         'convert': input => new TextDecoder().decode(input)
+    },
+    'utf16le': {
+        'name': 'Text (UTF-16LE)',
+        'convert': input => bytesToUtf16le(input)
     },
     'hex': {
         'name': 'Hex',

@@ -5,6 +5,27 @@
 // For CryptoJS, we convert the bytes to WordArray, then convert the WordArray to the desired output
 
 
+// Text <=> Bytes
+function utf16leToBytes(text) {
+    const bytes = []
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i)
+        bytes.push(code & 0xFF)        // low byte
+        bytes.push((code >> 8) & 0xFF) // high byte
+    }
+    return bytes
+}
+
+function bytesToUtf16le(u8array) {
+    let str = ''
+    for (let i = 0; i < u8array.length; i += 2) {
+        const low  = u8array[i]
+        const high = u8array[i + 1]
+        str += String.fromCharCode((high << 8) | low)
+    }
+    return str
+}
+
 // WordArray (CryptoJS) <=> Bytes
 function wordarrayToBytes(wordArray) {
     const words = wordArray.words

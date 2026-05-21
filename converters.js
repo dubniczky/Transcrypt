@@ -521,3 +521,50 @@ function bytesToRot13(bytes) {
         return byte
     }))
 }
+
+// Text <=> Morse
+morseAlphabet = {
+    'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+    'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+    'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+    'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+    'Y': '-.--', 'Z': '--..',
+    '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
+    '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----',
+    ' ': '/'
+}
+
+function textToMorse(text) {
+    return text.toUpperCase().split('').map(char => morseAlphabet[char] || '').join(' ')
+}
+function morseToText(morse) {
+    const morseToChar = Object.fromEntries(Object.entries(morseAlphabet).map(([k, v]) => [v, k]))
+    return morse.split(' ').map(code => morseToChar[code] || ' ').join('')
+}
+
+
+// Bytes => CRC32
+function bytesToCrc32(bytes) {
+    const table = new Uint32Array(256)
+    bytes = wordarrayToBytes(bytes)
+  
+    // Generate the CRC32 table
+    for (let i = 0; i < 256; i++) {
+      let crc = i;
+      for (let j = 0; j < 8; j++) {
+        crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1)
+      }
+      table[i] = crc >>> 0;
+    }
+  
+    // Compute the CRC
+    let crc = 0xFFFFFFFF
+    for (let i = 0; i < bytes.length; i++) {
+      const byte = bytes[i]
+      const index = (crc ^ byte) & 0xFF
+      crc = (crc >>> 8) ^ table[index]
+    }
+  
+    // Final XOR and return as hex string
+    return ((crc ^ 0xFFFFFFFF) >>> 0).toString(16)
+}

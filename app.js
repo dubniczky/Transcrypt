@@ -89,13 +89,11 @@ const fromFormats = {
     'bytes': {
         'name': 'Byte Array',
         'validator': input => {
-            const bytes = input.split(' ')
-            for (let i = 0; i < bytes.length; i++) {
-                if (isNaN(parseInt(bytes[i])) || parseInt(bytes[i]) < 0 || parseInt(bytes[i]) > 255) {
-                    return false
-                }
+            input = input.trim()
+            if (input === '') {
+                return true
             }
-            return true
+            return input.split(/\s+/).every(b => /^\d{1,3}$/.test(b) && parseInt(b, 10) <= 255)
         },
         'convert': input => btextToBytes(input)
     },
@@ -131,12 +129,12 @@ const fromFormats = {
     },
     'binary': {
         'name': 'Binary',
-        'validator': input => /^[01\s]+$/.test(input),
+        'validator': input => /^[01\s]*$/.test(input),
         'convert': input => binaryToBytes(input)
     },
     'morse': {
         'name': 'Morse Code',
-        'validator': input => input == '' || /^[\s.-]+$/.test(input),
+        'validator': input => /^[\s.\-\/]*$/.test(input), // '/' separates words
         'convert': input => new TextEncoder().encode(morseToText(input))
     },
     'uuid4': {
@@ -162,33 +160,24 @@ const fromFormats = {
     'ipv4': {
         'name': 'IPv4 Address',
         'validator': input => {
-            const parts = input.split('.')
-            if (parts.length !== 4) {
+            try {
+                ipv4ToBytes(input)
+                return true
+            } catch {
                 return false
             }
-            for (let i = 0; i < parts.length; i++) {
-                const part = parseInt(parts[i])
-                if (isNaN(part) || part < 0 || part > 255) {
-                    return false
-                }
-            }
-            return true
         },
         'convert': input => ipv4ToBytes(input)
     },
     'ipv6': {
         'name': 'IPv6 Address',
         'validator': input => {
-            const parts = input.split(':')
-            if (parts.length > 8) {
+            try {
+                ipv6ToBytes(input)
+                return true
+            } catch {
                 return false
             }
-            for (let i = 0; i < parts.length; i++) {
-                if (parts[i].length > 4 || !/^[0-9a-f]{0,4}$/i.test(parts[i])) {
-                    return false
-                }
-            }
-            return true
         },
         'convert': input => ipv6ToBytes(input)
     },
@@ -213,7 +202,7 @@ const fromFormats = {
     'reverse': {
         'name': 'Reverse Text',
         'validator': input => true, // It can be any text
-        'convert': input => new TextEncoder().encode(input.split('').reverse().join(''))
+        'convert': input => new TextEncoder().encode(Array.from(input).reverse().join('')) // Array.from keeps emoji (surrogate pairs) intact
     }
 }
 
@@ -241,6 +230,7 @@ const toFormats = {
     },
     'base64': {
         'name': 'Base64',
+        'caseSensitive': true,
         'convert': input => bytesToBase64(input)
     },
     'url': {
@@ -249,6 +239,7 @@ const toFormats = {
     },
     'base64url': {
         'name': 'Base64 URL',
+        'caseSensitive': true,
         'convert': input => b64ToB64Url(bytesToBase64(input))
     },
     'bytes': {
@@ -265,6 +256,7 @@ const toFormats = {
     },
     'ascii85': {
         'name': 'ASCII 85',
+        'caseSensitive': true,
         'convert': input => bytesToAscii85(input)
     },
     'htmlentities': {
@@ -332,7 +324,8 @@ const toFormats = {
     },
     'pbkdf2': {
         'name': 'PBKDF2 Hash',
-        'convert': input => bytesToPbkdf2(input),
+        'caseSensitive': true,
+        'convert': input => bytesToPbkdf2(input), // async
     },
 
     // Checksums
@@ -358,7 +351,7 @@ const toFormats = {
         'name': 'Reverse text',
         'convert': input => {
             const text = new TextDecoder().decode(input)
-            return text.split('').reverse().join('')
+            return Array.from(text).reverse().join('')
         }
     },
 }
@@ -381,6 +374,7 @@ const ignoreLineBreaksCheckbox = document.getElementById("ignore-line-breaks")
 const casingSelector = document.getElementById("casing-selector")
 const casingOptions = document.querySelectorAll(".casing-option")
 const darkModeToggle = document.getElementById("dark-mode-toggle")
+const outputPlaceholder = outputText.placeholder
 console.log("Loaded controls.")
 
 
@@ -443,8 +437,7 @@ toFormatSelector.addEventListener("change", function() {
     convertEvent()
 })
 inputText.addEventListener("input", function() {
-    updateInputValidation()
-    convertEvent()
+    convertEvent() // Validates the input as well
 })
 convertButton.addEventListener("click", function() {
     console.log("Convert button clicked")
@@ -479,6 +472,9 @@ ignoreLineBreaksCheckbox.addEventListener("change", function() {
 })
 casingOptions.forEach(option => {
     option.addEventListener("click", () => {
+        if (casingSelector.classList.contains("disabled")) {
+            return // Casing is not applicable to the selected output format
+        }
         casingOptions.forEach(opt => opt.classList.remove("active"))
         option.classList.add("active")
         convertEvent()
@@ -511,8 +507,9 @@ function validateInput(format, input) {
     return false
 }
 
-function updateInputValidation() {
-    const isValid = validateInput(fromFormatSelector.value, inputText.value)
+// Validates the preprocessed input (e.g. with line breaks removed), which is what actually gets converted
+function updateInputValidation(input) {
+    const isValid = validateInput(fromFormatSelector.value, input)
     if (isValid) {
         inputText.classList.remove("is-invalid")
         return true
@@ -536,11 +533,24 @@ function updateOutput(output) {
     outputText.value = output
 }
 
-function postprocessOutput(output) {
-    return applyCasingSetting(output)
+function postprocessOutput(output, toFormat) {
+    return applyCasingSetting(output, toFormat)
 }
 
-function applyCasingSetting(output) {
+function isCasingApplicable(toFormat) {
+    return !(toFormat in toFormats && toFormats[toFormat].caseSensitive)
+}
+
+function updateCasingAvailability() {
+    const applicable = isCasingApplicable(toFormatSelector.value)
+    casingSelector.classList.toggle("disabled", !applicable)
+    casingSelector.title = applicable ? "" : "Casing is disabled because this output format is case-sensitive."
+}
+
+function applyCasingSetting(output, toFormat) {
+    if (!isCasingApplicable(toFormat)) {
+        return output // Changing the case would corrupt case-sensitive encodings such as Base64
+    }
     const activeCasing = document.querySelector(".casing-option.active").dataset.casing
     if (activeCasing === "uppercase") {
         return output.toUpperCase()
@@ -557,12 +567,18 @@ function preprocessInput(input) {
     return input
 }
 
-function convertEvent() {
+// Incremented on every conversion so that a slow async result (e.g. PBKDF2) cannot overwrite a newer one
+let conversionCounter = 0
+
+async function convertEvent() {
+    const conversionId = ++conversionCounter
     const fromFormat = fromFormatSelector.value
     const toFormat = toFormatSelector.value
     const input = preprocessInput(inputText.value) // Preprocess input
+    outputText.placeholder = outputPlaceholder
+    updateCasingAvailability()
 
-    if (!updateInputValidation()) {
+    if (!updateInputValidation(input)) {
         return
     }
 
@@ -579,8 +595,18 @@ function convertEvent() {
     
     const inputBytes = fromFormats[fromFormat].convert(input) // Convert input to bytes
     updateInputSizeLabel(inputBytes.length)
-    const convertedOutput = toFormats[toFormat].convert(inputBytes) // Convert bytes to output format
-    const processedOutput = postprocessOutput(convertedOutput)
+    let convertedOutput = toFormats[toFormat].convert(inputBytes) // Convert bytes to output format
+    if (convertedOutput instanceof Promise) {
+        updateOutput("")
+        outputText.placeholder = "Computing..."
+        convertedOutput = await convertedOutput
+        if (conversionId !== conversionCounter) {
+            return // A newer conversion has started in the meantime
+        }
+        outputText.placeholder = outputPlaceholder
+    }
+
+    const processedOutput = postprocessOutput(convertedOutput, toFormat)
 
     updateOutput(processedOutput)
 }

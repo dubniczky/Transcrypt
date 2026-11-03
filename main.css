@@ -73,6 +73,12 @@ h2 {
     background-color: #007bff;
     color: white;
 }
+.casing-selector.disabled {
+    opacity: 0.5;
+}
+.casing-selector.disabled .casing-option {
+    cursor: not-allowed;
+}
 
 /* Dark mode */
 

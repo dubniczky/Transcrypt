@@ -56,6 +56,9 @@ function bytesToWordarray(u8Array) {
 
 // Hex <=> Bytes
 function hexToBytes(hex) {
+    if (!/^([0-9a-fA-F]{2})*$/.test(hex)) {
+        throw new Error('Invalid hex string')
+    }
     const bytes = new Uint8Array(hex.length / 2)
     for (let i = 0; i < hex.length; i += 2) {
         bytes[i / 2] = parseInt(hex.substr(i, 2), 16)
@@ -73,9 +76,16 @@ function bytesToHex(bytes) {
 
 // Octal <=> Bytes
 function octalToBytes(octal) {
+    if (!/^([0-7]{3})*$/.test(octal)) {
+        throw new Error('Invalid octal string')
+    }
     const bytes = new Uint8Array(octal.length / 3)
     for (let i = 0; i < octal.length; i += 3) {
-        bytes[i / 3] = parseInt(octal.substr(i, 3), 8)
+        const value = parseInt(octal.substr(i, 3), 8)
+        if (value > 255) {
+            throw new Error('Octal value out of byte range: ' + octal.substr(i, 3))
+        }
+        bytes[i / 3] = value
     }
     return bytes
 }
@@ -90,7 +100,11 @@ function bytesToOctal(bytes) {
 
 // Byte Array (text) <=> bytes
 function btextToBytes(btext) {
-    const bints = btext.split(' ')
+    btext = btext.trim()
+    if (btext === '') {
+        return new Uint8Array(0)
+    }
+    const bints = btext.split(/\s+/)
     const bytes = new Uint8Array(bints.length)
     for (let i = 0; i < bints.length; i++) {
         bytes[i] = parseInt(bints[i], 10)
@@ -110,11 +124,13 @@ function base32ToBytes(base32) {
     let bitsLeft = 0
 
     base32 = base32.toUpperCase()
+    if (!/^[A-Z2-7]*=*$/.test(base32)) {
+        throw new Error('Invalid Base32 string')
+    }
 
     for (let char of base32) {
         if (char === '=') break
         const value = base32EncodingAlphabet.indexOf(char)
-        if (value === -1) continue
 
         buffer = (buffer << 5) | value
         bitsLeft += 5
@@ -157,9 +173,11 @@ function bytesToBase32(bytes) {
 
 // HTML Entities <=> Bytes
 function htmlentitiesToBytes(htmlentities) {
-    const text = htmlentities.replace(/&#(\d+);/g, function(match, dec) {
-        return String.fromCharCode(dec)
-    })
+    // Decode named (&amp;), decimal (&#65;) and hex (&#x41;) entities.
+    // A detached <textarea> parses its content as text, so no markup is created or executed.
+    const decoder = document.createElement('textarea')
+    decoder.innerHTML = htmlentities
+    const text = decoder.value
     const bytes = new Uint8Array(text.length)
     for (let i = 0; i < text.length; i++) {
         bytes[i] = text.charCodeAt(i)
@@ -222,16 +240,25 @@ function bytesToBinary(bytes) {
 }
 
 // Big int (text) <=> Bytes
-function decimalToBytes(bigint) {
-    const hex = BigInt(bigint).toString(16)
+function decimalToBytes(decimal) {
+    decimal = decimal.trim()
+    if (decimal === '') {
+        return new Uint8Array(0)
+    }
+    if (!/^\d+$/.test(decimal)) {
+        throw new Error('Invalid decimal number')
+    }
+    let hex = BigInt(decimal).toString(16)
+    if (hex.length % 2 !== 0) {
+        hex = '0' + hex // Pad to whole bytes
+    }
     return hexToBytes(hex)
 }
 function bytesToDecimal(bytes) {
-    let hex = ''
-    for (let i = 0; i < bytes.length; i++) {
-        hex += ('0' + bytes[i].toString(16)).slice(-2)
+    if (bytes.length === 0) {
+        return ''
     }
-    return BigInt('0x' + hex).toString()
+    return BigInt('0x' + bytesToHex(bytes)).toString()
 }
 
 
@@ -255,21 +282,50 @@ function bytesToHexDump(bytes) {
 
     return hexDump.trim()
 }
+// Parses whitespace-separated hex tokens ("de", "dead", ...) into bytes, or returns null if any token is invalid
+function parseHexdumpTokens(region) {
+    const bytes = []
+    for (const token of region.trim().split(/\s+/)) {
+        if (token === '') continue
+        if (!/^([0-9a-fA-F]{2})+$/.test(token)) {
+            return null
+        }
+        for (let i = 0; i < token.length; i += 2) {
+            bytes.push(parseInt(token.substr(i, 2), 16))
+        }
+    }
+    return bytes
+}
+// Supports this tool's own format, `xxd` ("00000000: 6865 6c6c  hell") and `hexdump -C` ("00000000  68 65  |he|")
 function hexdumpToBytes(hexdump) {
-    const lines = hexdump.split('\n')
     const bytes = []
 
-    for (const line of lines) {
-        const parts = line.trim().split(' ')
-        if (parts.length < 2) continue // Skip empty or malformed lines
+    for (let line of hexdump.split(/\r?\n/)) {
+        line = line.trim()
+        if (line === '') continue
 
-        // Skip the offset part
-        for (let i = 1; i < parts.length - 1; i++) {
-            const byte = parseInt(parts[i], 16)
-            if (!isNaN(byte)) {
-                bytes.push(byte)
+        const match = line.match(/^[0-9a-fA-F]+:?(?:\s+(.*))?$/)
+        if (!match) {
+            throw new Error('Invalid hex dump line: ' + line)
+        }
+        const rest = match[1] || ''
+
+        // hexdump -C style: ASCII column wrapped in |...| with one character per byte
+        const bar = rest.indexOf('|')
+        if (bar !== -1 && bar < rest.length - 1 && rest.endsWith('|')) {
+            const lineBytes = parseHexdumpTokens(rest.slice(0, bar))
+            if (lineBytes !== null && lineBytes.length === rest.length - bar - 2) {
+                bytes.push(...lineBytes)
+                continue
             }
         }
+
+        // Otherwise the ASCII column is separated from the hex column by at least two spaces
+        const lineBytes = parseHexdumpTokens(rest.split(/\s{2,}/)[0])
+        if (lineBytes === null) {
+            throw new Error('Invalid hex dump line: ' + line)
+        }
+        bytes.push(...lineBytes)
     }
 
     return new Uint8Array(bytes)
@@ -279,8 +335,14 @@ function hexdumpToBytes(hexdump) {
 // IPv4 Address <=> Bytes
 function ipv4ToBytes(ipv4) {
     const parts = ipv4.split('.')
+    if (parts.length !== 4) {
+        throw new Error('Invalid IPv4 address')
+    }
     const bytes = new Uint8Array(4)
     for (let i = 0; i < 4; i++) {
+        if (!/^\d{1,3}$/.test(parts[i]) || parseInt(parts[i], 10) > 255) {
+            throw new Error('Invalid IPv4 address')
+        }
         bytes[i] = parseInt(parts[i], 10)
     }
     return bytes
@@ -305,21 +367,25 @@ function ipv6ToBytes(ipv6) {
     let head = parts[0] ? parts[0].split(':') : []
     let tail = parts[1] ? parts[1].split(':') : []
 
-    // Total number of segments should be 8
-    const missingCount = 8 - (head.length + tail.length)
-
-    if (parts.length > 2 || missingCount < 0) {
+    if (parts.length > 2) {
         throw new Error('Invalid IPv6 address')
+    }
+
+    // Total number of segments should be 8; '::' must stand for at least one zero segment
+    const missingCount = 8 - (head.length + tail.length)
+    if (parts.length === 1 ? missingCount !== 0 : missingCount < 1) {
+        throw new Error('Invalid IPv6 address')
+    }
+    for (const seg of [...head, ...tail]) {
+        if (!/^[0-9a-fA-F]{1,4}$/.test(seg)) {
+            throw new Error('Invalid IPv6 address')
+        }
     }
 
     const zeros = new Array(missingCount).fill('0000');
     const full = [...head, ...zeros, ...tail].map(seg =>
         seg.padStart(4, '0')
     );
-
-    if (missingCount < 0) {
-        return new Uint8Array(0)
-    }
 
     // Convert each segment to bytes
     const bytes = new Uint8Array(16)
@@ -402,70 +468,85 @@ function bytesToIso8601(bytes) {
 
 // Ascii85 <=> Bytes
 function ascii85ToBytes(input) {
-    const cleaned = input.replace(/\s+/g, '').replace(/z/g, '!!!!!'); // handle 'z' shorthand
-    const output = [];
-  
-    for (let i = 0; i < cleaned.length; i += 5) {
-      const chunk = cleaned.slice(i, i + 5);
-      let value = 0;
-  
-      // Pad short chunks with 'u' (ASCII 117, value 84)
-      const paddedLength = chunk.length;
-      const paddedChunk = chunk.padEnd(5, 'u');
-  
-      for (let j = 0; j < 5; j++) {
-        const code = paddedChunk.charCodeAt(j);
-        if (code < 33 || code > 117) {
-          throw new Error(`Invalid character in ASCII85 block: ${paddedChunk[j]}`);
+    let cleaned = input.replace(/\s+/g, '')
+    // Optional Adobe-style delimiters
+    if (cleaned.startsWith('<~')) cleaned = cleaned.slice(2)
+    if (cleaned.endsWith('~>')) cleaned = cleaned.slice(0, -2)
+
+    const output = []
+    let i = 0
+    while (i < cleaned.length) {
+        // 'z' is shorthand for a group of four zero bytes (only valid at a group boundary)
+        if (cleaned[i] === 'z') {
+            output.push(0, 0, 0, 0)
+            i++
+            continue
         }
-        value = value * 85 + (code - 33);
-      }
-  
-      // Extract 4 bytes
-      const bytes = [
-        (value >>> 24) & 0xFF,
-        (value >>> 16) & 0xFF,
-        (value >>> 8) & 0xFF,
-        value & 0xFF,
-      ];
-  
-      // Push only relevant bytes if it was padded
-      output.push(...bytes.slice(0, paddedLength - 1));
+
+        const chunk = cleaned.slice(i, i + 5)
+        if (chunk.includes('z')) {
+            throw new Error('Invalid ASCII85: "z" inside a group')
+        }
+        if (chunk.length === 1) {
+            throw new Error('Invalid ASCII85: dangling final character')
+        }
+
+        // Pad short chunks with 'u' (ASCII 117, value 84)
+        const paddedChunk = chunk.padEnd(5, 'u')
+        let value = 0
+        for (let j = 0; j < 5; j++) {
+            const code = paddedChunk.charCodeAt(j)
+            if (code < 33 || code > 117) {
+                throw new Error(`Invalid character in ASCII85 block: ${paddedChunk[j]}`)
+            }
+            value = value * 85 + (code - 33)
+        }
+        if (value > 0xFFFFFFFF) {
+            throw new Error('Invalid ASCII85: group value overflow')
+        }
+
+        const bytes = [
+            (value >>> 24) & 0xFF,
+            (value >>> 16) & 0xFF,
+            (value >>> 8) & 0xFF,
+            value & 0xFF,
+        ]
+        // A group of n characters encodes n - 1 bytes
+        output.push(...bytes.slice(0, chunk.length - 1))
+        i += 5
     }
-  
-    return new Uint8Array(output);
-  }
-  
+
+    return new Uint8Array(output)
+}
+
 function bytesToAscii85(bytes) {
-    const result = [];
-    const length = bytes.length;
-    let i = 0;
-  
-    while (i < length) {
-      // Get up to 4 bytes (pad with 0s if fewer than 4)
-      let chunk = 0;
-      const remaining = Math.min(4, length - i);
-      for (let j = 0; j < 4; j++) {
-        chunk <<= 8;
-        chunk |= (i + j < length) ? bytes[i + j] : 0;
-      }
-  
-      if (chunk === 0 && remaining === 4) {
-        result.push('z'); // compression shortcut for 0
-      } else {
-        const chars = new Array(5);
-        for (let k = 4; k >= 0; k--) {
-          chars[k] = String.fromCharCode((chunk % 85) + 33);
-          chunk = Math.floor(chunk / 85);
+    let result = ''
+
+    for (let i = 0; i < bytes.length; i += 4) {
+        const remaining = Math.min(4, bytes.length - i)
+
+        // Build the 32-bit group arithmetically (bit shifts overflow into negative int32)
+        let chunk = 0
+        for (let j = 0; j < 4; j++) {
+            chunk = chunk * 256 + (j < remaining ? bytes[i + j] : 0)
         }
-        result.push(...chars.slice(0, Math.ceil((remaining + 1) * 5 / 4)));
-      }
-  
-      i += 4;
+
+        if (chunk === 0 && remaining === 4) {
+            result += 'z' // compression shortcut for 0
+            continue
+        }
+
+        const chars = new Array(5)
+        for (let k = 4; k >= 0; k--) {
+            chars[k] = String.fromCharCode((chunk % 85) + 33)
+            chunk = Math.floor(chunk / 85)
+        }
+        // n input bytes produce n + 1 output characters
+        result += chars.slice(0, remaining + 1).join('')
     }
-  
-    return result.join('')
-  }
+
+    return result
+}
   
 
 
@@ -486,17 +567,19 @@ function bytesToSha512(bytes) {
     return CryptoJS.SHA512(bytesToWordarray(bytes)).toString()
 }
 
-function bytesToPbkdf2(bytes) {
-    const salt = new Uint8Array(16)
-    window.crypto.getRandomValues(salt)
+// Uses WebCrypto with HMAC-SHA256 (CryptoJS 4.1.1 silently used SHA1 here).
+// WebCrypto runs off the main thread, so the UI no longer freezes. Returns a Promise; the app awaits it.
+async function bytesToPbkdf2(bytes) {
+    const salt = crypto.getRandomValues(new Uint8Array(16))
     const keySize = 256
     const iterations = 350000
-    const digest = CryptoJS.PBKDF2(
-        bytesToWordarray(bytes),
-        bytesToWordarray(salt),
-        { keySize: keySize / 32, iterations: iterations }
-    ).toString()
-    return `pbkdf2$sha256$${iterations}$${bytesToHex(salt)}$${digest}`
+    const key = await crypto.subtle.importKey('raw', new Uint8Array(bytes), 'PBKDF2', false, ['deriveBits'])
+    const digest = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: iterations },
+        key,
+        keySize
+    )
+    return `pbkdf2$sha256$${iterations}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(digest))}`
 }
 
 
@@ -538,16 +621,19 @@ function textToMorse(text) {
     return text.toUpperCase().split('').map(char => morseAlphabet[char] || '').join(' ')
 }
 function morseToText(morse) {
+    morse = morse.trim()
+    if (morse === '') {
+        return ''
+    }
     const morseToChar = Object.fromEntries(Object.entries(morseAlphabet).map(([k, v]) => [v, k]))
-    return morse.split(' ').map(code => morseToChar[code] || ' ').join('')
+    return morse.split(/\s+/).map(code => morseToChar[code] || ' ').join('')
 }
 
 
 // Bytes => CRC32
 function bytesToCrc32(bytes) {
     const table = new Uint32Array(256)
-    bytes = wordarrayToBytes(bytes)
-  
+
     // Generate the CRC32 table
     for (let i = 0; i < 256; i++) {
       let crc = i;
@@ -565,6 +651,6 @@ function bytesToCrc32(bytes) {
       crc = (crc >>> 8) ^ table[index]
     }
   
-    // Final XOR and return as hex string
-    return ((crc ^ 0xFFFFFFFF) >>> 0).toString(16)
+    // Final XOR and return as zero-padded hex string
+    return ((crc ^ 0xFFFFFFFF) >>> 0).toString(16).padStart(8, '0')
 }

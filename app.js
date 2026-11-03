@@ -445,8 +445,11 @@ convertButton.addEventListener("click", function() {
 })
 switchButton.addEventListener("click", function() {
     console.log("Switch button clicked")
-    fromFormat = fromFormatSelector.value
-    toFormat = toFormatSelector.value
+    const fromFormat = fromFormatSelector.value
+    const toFormat = toFormatSelector.value
+    if (!isSwapPossible(fromFormat, toFormat)) {
+        return
+    }
     fromFormatSelector.value = toFormat
     toFormatSelector.value = fromFormat
     updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
@@ -497,7 +500,7 @@ function updateQueryParams(from, to) {
     const url = new URL(window.location.href)
     url.searchParams.set('from', from)
     url.searchParams.set('to', to)
-    window.history.pushState({}, '', url)
+    window.history.replaceState({}, '', url)
 }
 
 function validateInput(format, input) {
@@ -547,6 +550,27 @@ function updateCasingAvailability() {
     casingSelector.title = applicable ? "" : "Casing is disabled because this output format is case-sensitive."
 }
 
+// Swapping only makes sense if the input format can also be an output and vice versa
+// (e.g. hashes such as SHA256 are output-only, so they cannot become the input format)
+function isSwapPossible(fromFormat, toFormat) {
+    return fromFormat in toFormats && toFormat in fromFormats
+}
+
+function updateSwapAvailability() {
+    const fromFormat = fromFormatSelector.value
+    const toFormat = toFormatSelector.value
+    const possible = isSwapPossible(fromFormat, toFormat)
+    switchButton.disabled = !possible
+    if (possible) {
+        switchButton.title = "Swap the input and output formats."
+    } else {
+        const oneSided = !(toFormat in fromFormats)
+            ? `${toFormats[toFormat]?.name ?? toFormat} can only be used as an output format`
+            : `${fromFormats[fromFormat]?.name ?? fromFormat} can only be used as an input format`
+        switchButton.title = `Cannot swap: ${oneSided}.`
+    }
+}
+
 function applyCasingSetting(output, toFormat) {
     if (!isCasingApplicable(toFormat)) {
         return output // Changing the case would corrupt case-sensitive encodings such as Base64
@@ -577,6 +601,7 @@ async function convertEvent() {
     const input = preprocessInput(inputText.value) // Preprocess input
     outputText.placeholder = outputPlaceholder
     updateCasingAvailability()
+    updateSwapAvailability()
 
     if (!updateInputValidation(input)) {
         return

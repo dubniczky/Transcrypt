@@ -654,3 +654,62 @@ function bytesToCrc32(bytes) {
     // Final XOR and return as zero-padded hex string
     return ((crc ^ 0xFFFFFFFF) >>> 0).toString(16).padStart(8, '0')
 }
+
+// JWT => Bytes (decoding only: the signature is NOT verified)
+// Produces pretty-printed JSON text with the decoded header, payload and the raw signature,
+// plus human-readable dates for the registered time claims (iat, nbf, exp).
+function jwtSegmentToJson(segment, name) {
+    if (!/^[A-Za-z0-9_-]+$/.test(segment)) {
+        throw new Error(`Invalid JWT ${name}: not Base64 URL`)
+    }
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(base64ToBytes(b64UrlToB64(segment)))
+    const json = JSON.parse(text)
+    if (json === null || typeof json !== 'object' || Array.isArray(json)) {
+        throw new Error(`Invalid JWT ${name}: not a JSON object`)
+    }
+    return json
+}
+
+function decodeJwt(token) {
+    token = token.trim().replace(/^Bearer\s+/i, '')
+    const parts = token.split('.')
+    if (parts.length === 5) {
+        throw new Error('Encrypted JWTs (JWE) cannot be decoded without the key')
+    }
+    if (parts.length !== 3) {
+        throw new Error('Invalid JWT: expected 3 dot-separated parts')
+    }
+    const [headerPart, payloadPart, signaturePart] = parts
+    if (signaturePart !== '' && !/^[A-Za-z0-9_-]+$/.test(signaturePart)) {
+        throw new Error('Invalid JWT signature: not Base64 URL')
+    }
+
+    const result = {
+        header: jwtSegmentToJson(headerPart, 'header'),
+        payload: jwtSegmentToJson(payloadPart, 'payload'),
+        signature: signaturePart,
+    }
+
+    // Human-readable versions of the NumericDate claims (seconds since the epoch)
+    const now = Date.now() / 1000
+    const dates = {}
+    for (const claim of ['iat', 'nbf', 'exp']) {
+        const value = result.payload[claim]
+        if (typeof value !== 'number' || !isFinite(value)) continue
+        const date = new Date(value * 1000)
+        if (isNaN(date.getTime())) continue
+        let note = ''
+        if (claim === 'exp') note = value < now ? ' (expired)' : ' (valid)'
+        if (claim === 'nbf' && value > now) note = ' (not yet valid)'
+        dates[claim] = date.toISOString() + note
+    }
+    if (Object.keys(dates).length > 0) {
+        result.dates = dates
+    }
+
+    return result
+}
+
+function jwtToBytes(token) {
+    return new TextEncoder().encode(JSON.stringify(decodeJwt(token), null, 2))
+}

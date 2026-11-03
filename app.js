@@ -203,6 +203,21 @@ const fromFormats = {
         'name': 'Reverse Text',
         'validator': input => true, // It can be any text
         'convert': input => new TextEncoder().encode(Array.from(input).reverse().join('')) // Array.from keeps emoji (surrogate pairs) intact
+    },
+    'jwt': {
+        'name': 'JWT (decode)',
+        'validator': input => {
+            if (input.trim() === '') {
+                return true
+            }
+            try {
+                decodeJwt(input)
+                return true
+            } catch {
+                return false
+            }
+        },
+        'convert': input => input.trim() === '' ? new Uint8Array(0) : jwtToBytes(input)
     }
 }
 
@@ -428,6 +443,9 @@ console.log(`Updated query parameters to reflect defaults if not set.`)
 // Add event listeners
 fromFormatSelector.addEventListener("change", function() {
     console.log("From format changed to " + fromFormatSelector.value)
+    if (fromFormatSelector.value === 'jwt') {
+        toFormatSelector.value = 'utf8' // The decoded JWT is JSON text, so show it as text by default
+    }
     updateQueryParams(fromFormatSelector.value, toFormatSelector.value)
     convertEvent()
 })

@@ -13,6 +13,7 @@ Many converter tools exist on the internet, but most focus on one specific type 
 - It allows encoding from and decoding to many formats with universal compatibility between each
 - It has an easy and intuitive user interface
 - It can perform more complex conversions, format shifting, hashing, and counting.
+- It can decode JSON Web Tokens (JWT) into readable JSON, locally, without sending the token anywhere. The signature is not verified.
 
 ## Technical Details
 

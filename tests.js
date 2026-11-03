@@ -129,6 +129,29 @@ function runTests() {
     assertEq('ipv6', 'hex', '2001:db8::1', '20010db8000000000000000000000001')
     assertEq('hex', 'ipv6', '20010db8000000000000000000000001', '2001:db8::1')
 
+    // JWT decoding (jwt.io example token)
+    const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+    const jwtExpected = JSON.stringify({
+        header: { alg: 'HS256', typ: 'JWT' },
+        payload: { sub: '1234567890', name: 'John Doe', iat: 1516239022 },
+        signature: 'SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        dates: { iat: '2018-01-18T01:30:22.000Z' },
+    }, null, 2)
+    assertEq('jwt', 'utf8', jwt, jwtExpected)
+    assertEq('jwt', 'utf8', 'Bearer ' + jwt, jwtExpected)
+    assertEq('jwt', 'utf8', '', '')
+    assertValid('jwt', jwt, true)
+    assertValid('jwt', jwt.split('.').slice(0, 2).join('.') + '.', true) // unsigned (alg: none)
+    assertValid('jwt', jwt.split('.').slice(0, 2).join('.'), false) // missing part
+    assertValid('jwt', 'abc.def.ghi', false) // not JSON
+    assertValid('jwt', 'a.b.c.d.e', false) // JWE
+    // exp in the past is flagged as expired
+    const expiredJwt = 'eyJhbGciOiJub25lIn0.' + b64ToB64Url(btoa('{"exp":1000000000}')) + '.'
+    assertEq('jwt', 'utf8', expiredJwt, JSON.stringify({
+        header: { alg: 'none' }, payload: { exp: 1000000000 }, signature: '',
+        dates: { exp: '2001-09-09T01:46:40.000Z (expired)' },
+    }, null, 2))
+
     // PBKDF2 is asynchronous: recompute the digest from the returned salt
     assertPbkdf2('password').then(() => {
         if (testRunnerTotalErrors > 0) console.error('PBKDF2 test finished with errors.')

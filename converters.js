@@ -5,23 +5,51 @@
 // For CryptoJS, we convert the bytes to WordArray, then convert the WordArray to the desired output
 
 
-// Text <=> Bytes
-function utf16leToBytes(text) {
-    const bytes = []
-    for (let i = 0; i < text.length; i++) {
-        const code = text.charCodeAt(i)
-        bytes.push(code & 0xFF)        // low byte
-        bytes.push((code >> 8) & 0xFF) // high byte
+// Thrown when a format option (sidebar field) has an invalid value, so the UI can highlight that field
+class OptionError extends Error {
+    constructor(optionId, message) {
+        super(message)
+        this.optionId = optionId
     }
-    return bytes
 }
 
-function bytesToUtf16le(u8array) {
+
+// Text <=> Bytes (UTF-16, code unit by code unit, so surrogate pairs are preserved)
+function utf16ToBytes(text, littleEndian = true, addBom = false) {
+    const bytes = []
+    if (addBom) {
+        text = '﻿' + text
+    }
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i)
+        const low = code & 0xFF
+        const high = (code >> 8) & 0xFF
+        if (littleEndian) {
+            bytes.push(low, high)
+        } else {
+            bytes.push(high, low)
+        }
+    }
+    return new Uint8Array(bytes)
+}
+
+function bytesToUtf16(bytes, littleEndian = true, useBom = false) {
+    let start = 0
+    // A byte order mark overrides the selected byte order
+    if (useBom && bytes.length >= 2) {
+        if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+            littleEndian = true
+            start = 2
+        } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+            littleEndian = false
+            start = 2
+        }
+    }
     let str = ''
-    for (let i = 0; i < u8array.length; i += 2) {
-        const low  = u8array[i]
-        const high = u8array[i + 1]
-        str += String.fromCharCode((high << 8) | low)
+    for (let i = start; i < bytes.length; i += 2) {
+        const first = bytes[i]
+        const second = bytes[i + 1] || 0
+        str += String.fromCharCode(littleEndian ? (second << 8) | first : (first << 8) | second)
     }
     return str
 }
@@ -99,20 +127,29 @@ function bytesToOctal(bytes) {
 
 
 // Byte Array (text) <=> bytes
+// Accepts "1 2 3", "1,2,3", "1, 2, 3" and "[1, 2, 3]"
 function btextToBytes(btext) {
     btext = btext.trim()
+    if (btext.startsWith('[') && btext.endsWith(']')) {
+        btext = btext.slice(1, -1).trim()
+    }
     if (btext === '') {
         return new Uint8Array(0)
     }
-    const bints = btext.split(/\s+/)
+    const bints = btext.split(/[\s,]+/).filter(b => b !== '')
     const bytes = new Uint8Array(bints.length)
     for (let i = 0; i < bints.length; i++) {
+        if (!/^\d{1,3}$/.test(bints[i]) || parseInt(bints[i], 10) > 255) {
+            throw new Error('Invalid byte value: ' + bints[i])
+        }
         bytes[i] = parseInt(bints[i], 10)
     }
     return bytes
 }
-function bytesToBtext(bytes) {
-    return Array.from(bytes).join(' ')
+const byteArraySeparators = { 'space': ' ', 'comma': ',', 'commaspace': ', ' }
+function bytesToBtext(bytes, separator = 'space', brackets = false) {
+    const text = Array.from(bytes).join(byteArraySeparators[separator] ?? ' ')
+    return brackets ? `[${text}]` : text
 }
 
 
@@ -143,7 +180,7 @@ function base32ToBytes(base32) {
 
     return new Uint8Array(bytes)
 }
-function bytesToBase32(bytes) {
+function bytesToBase32(bytes, padding = true) {
     
     let base32 = ''
     let buffer = 0
@@ -163,7 +200,7 @@ function bytesToBase32(bytes) {
         base32 += base32EncodingAlphabet[(buffer << (5 - bitsLeft)) & 0x1F]
     }
 
-    while (base32.length % 8 !== 0) {
+    while (padding && base32.length % 8 !== 0) {
         base32 += '='
     }
 
@@ -211,9 +248,24 @@ function bytesToBase64(bytes) {
 }
 
 
+// Base64 formatting options
+function formatBase64(base64, padding = true, wrap = 0) {
+    if (!padding) {
+        base64 = base64.replace(/=+$/, '')
+    }
+    if (wrap > 0 && base64.length > wrap) {
+        base64 = base64.match(new RegExp(`.{1,${wrap}}`, 'g')).join('\n')
+    }
+    return base64
+}
+
+
 // Base64 <=> Base64URL
-function b64ToB64Url(base64) {
-    return base64.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+function b64ToB64Url(base64, padding = false) {
+    if (!padding) {
+        base64 = base64.replace(/=+$/, '')
+    }
+    return base64.replace(/\+/g, '-').replace(/\//g, '_')
 }
 function b64UrlToB64(base64url) {
     return base64url.replace(/-/g, '+').replace(/_/g, '/')
@@ -240,7 +292,7 @@ function bytesToBinary(bytes) {
 }
 
 // Big int (text) <=> Bytes
-function decimalToBytes(decimal) {
+function decimalToBytes(decimal, littleEndian = false) {
     decimal = decimal.trim()
     if (decimal === '') {
         return new Uint8Array(0)
@@ -252,19 +304,22 @@ function decimalToBytes(decimal) {
     if (hex.length % 2 !== 0) {
         hex = '0' + hex // Pad to whole bytes
     }
-    return hexToBytes(hex)
+    const bytes = hexToBytes(hex)
+    return littleEndian ? bytes.reverse() : bytes
 }
-function bytesToDecimal(bytes) {
+function bytesToDecimal(bytes, littleEndian = false) {
     if (bytes.length === 0) {
         return ''
+    }
+    if (littleEndian) {
+        bytes = Uint8Array.from(bytes).reverse() // Copy, so the caller's bytes are not modified
     }
     return BigInt('0x' + bytesToHex(bytes)).toString()
 }
 
 
 // Hexdump <=> Bytes
-function bytesToHexDump(bytes) {
-    const lineSize = 16
+function bytesToHexDump(bytes, lineSize = 16, showAscii = true) {
     let hexDump = ''
 
     for (let i = 0; i < bytes.length; i += lineSize) {
@@ -277,7 +332,9 @@ function bytesToHexDump(bytes) {
             .map(byte => (byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.'))
             .join('')
 
-        hexDump += `${offset}  ${hexPart.padEnd(lineSize * 3)} ${asciiPart}\n`
+        hexDump += showAscii
+            ? `${offset}  ${hexPart.padEnd(lineSize * 3)} ${asciiPart}\n`
+            : `${offset}  ${hexPart}\n`
     }
 
     return hexDump.trim()
@@ -396,7 +453,7 @@ function ipv6ToBytes(ipv6) {
     }
     return bytes
 }
-function bytesToIpv6(bytes) {
+function bytesToIpv6(bytes, compress = true) {
     if (bytes.length !== 16) {
         return 'Invalid IPv6 length! 16 bytes required. Current: ' + bytes.length
     }
@@ -409,6 +466,9 @@ function bytesToIpv6(bytes) {
         ipv6 += byte1 + byte2 + ':'
     }
     ipv6 = ipv6.slice(0, -1)
+    if (!compress) {
+        return ipv6 // Full form, e.g. 2001:0db8:0000:0000:0000:0000:0000:0001
+    }
 
 
     // Compress address
@@ -567,42 +627,112 @@ function bytesToSha512(bytes) {
     return CryptoJS.SHA512(bytesToWordarray(bytes)).toString()
 }
 
-// Uses WebCrypto with HMAC-SHA256 (CryptoJS 4.1.1 silently used SHA1 here).
-// WebCrypto runs off the main thread, so the UI no longer freezes. Returns a Promise; the app awaits it.
-async function bytesToPbkdf2(bytes) {
-    const salt = crypto.getRandomValues(new Uint8Array(16))
-    const keySize = 256
-    const iterations = 350000
+// Bytes => HMAC (keyed hash). The key is used as UTF-8 text.
+const hmacAlgorithms = ['MD5', 'SHA1', 'SHA256', 'SHA512']
+function bytesToHmac(bytes, algorithm = 'SHA256', key = '') {
+    if (!hmacAlgorithms.includes(algorithm)) {
+        throw new OptionError('algorithm', 'Unsupported HMAC algorithm: ' + algorithm)
+    }
+    const hasher = CryptoJS.algo[algorithm]
+    const keyWords = bytesToWordarray(new TextEncoder().encode(key))
+    return CryptoJS.algo.HMAC.create(hasher, keyWords).finalize(bytesToWordarray(bytes)).toString()
+}
+
+
+// Uses WebCrypto (runs off the main thread, so the UI does not freeze). Returns a Promise; the app awaits it.
+// An empty salt means a random 16-byte salt.
+async function bytesToPbkdf2(bytes, hash = 'SHA-256', iterations = 350000, keyLength = 256, saltHex = '', output = 'full') {
+    if (!['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'].includes(hash)) {
+        throw new OptionError('hash', 'Unsupported PBKDF2 hash: ' + hash)
+    }
+    if (keyLength % 8 !== 0) {
+        throw new OptionError('keyLength', 'Key length must be a multiple of 8 bits')
+    }
+    let salt
+    saltHex = saltHex.trim()
+    if (saltHex === '') {
+        salt = crypto.getRandomValues(new Uint8Array(16))
+    } else {
+        try {
+            salt = hexToBytes(saltHex)
+        } catch {
+            throw new OptionError('salt', 'The salt must be a hex string (or empty for a random salt)')
+        }
+    }
+
     const key = await crypto.subtle.importKey('raw', new Uint8Array(bytes), 'PBKDF2', false, ['deriveBits'])
     const digest = await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', hash: 'SHA-256', salt: salt, iterations: iterations },
+        { name: 'PBKDF2', hash: hash, salt: salt, iterations: iterations },
         key,
-        keySize
+        keyLength
     )
-    return `pbkdf2$sha256$${iterations}$${bytesToHex(salt)}$${bytesToHex(new Uint8Array(digest))}`
+    const digestHex = bytesToHex(new Uint8Array(digest))
+    if (output === 'digest') {
+        return digestHex
+    }
+    const hashLabel = hash.toLowerCase().replace('-', '') // e.g. 'sha256'
+    return `pbkdf2$${hashLabel}$${iterations}$${bytesToHex(salt)}$${digestHex}`
 }
 
 
-// ROT13 <=> Bytes
-function rot13ToBytes(rot13) {
-    return new Uint8Array(rot13.split('').map(char => {
-        if (char >= 'A' && char <= 'Z') {
-            return ((char.charCodeAt(0) - 'A'.charCodeAt(0) - 13 + 26) % 26) + 'A'.charCodeAt(0)
-        } else if (char >= 'a' && char <= 'z') {
-            return ((char.charCodeAt(0) - 'a'.charCodeAt(0) - 13 + 26) % 26) + 'a'.charCodeAt(0)
+// Caesar cipher / ROT-N over a custom alphabet (works on Unicode text).
+// Characters not in the alphabet are kept, except that the other-case version of an alphabet
+// letter is shifted as well and keeps its case (so 'a-z' also rotates 'A-Z').
+function caesarShift(text, shift = 13, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
+    const letters = Array.from(alphabet)
+    if (letters.length === 0) {
+        throw new OptionError('alphabet', 'The alphabet must not be empty')
+    }
+    if (new Set(letters).size !== letters.length) {
+        throw new OptionError('alphabet', 'The alphabet must not contain duplicate characters')
+    }
+    const size = letters.length
+    const positions = new Map(letters.map((char, i) => [char, i]))
+    const offset = ((shift % size) + size) % size
+
+    return Array.from(text).map(char => {
+        if (positions.has(char)) {
+            return letters[(positions.get(char) + offset) % size]
         }
-        return char.charCodeAt(0)
-    }))
+        const lower = char.toLowerCase()
+        if (lower !== char && positions.has(lower)) {
+            return letters[(positions.get(lower) + offset) % size].toUpperCase()
+        }
+        const upper = char.toUpperCase()
+        if (upper !== char && positions.has(upper)) {
+            return letters[(positions.get(upper) + offset) % size].toLowerCase()
+        }
+        return char
+    }).join('')
 }
-function bytesToRot13(bytes) {
-    return String.fromCharCode(...bytes.map(byte => {
-        if (byte >= 'A'.charCodeAt(0) && byte <= 'Z'.charCodeAt(0)) {
-            return ((byte - 'A'.charCodeAt(0) + 13) % 26) + 'A'.charCodeAt(0)
-        } else if (byte >= 'a'.charCodeAt(0) && byte <= 'z'.charCodeAt(0)) {
-            return ((byte - 'a'.charCodeAt(0) + 13) % 26) + 'a'.charCodeAt(0)
-        }
-        return byte
-    }))
+
+
+// Text => Count
+function countText(bytes, mode = 'words') {
+    if (mode === 'bytes') {
+        return bytes.length.toString()
+    }
+    const text = new TextDecoder().decode(bytes)
+    if (mode === 'characters') {
+        return Array.from(text).length.toString() // Counts emoji as one character
+    }
+    if (mode === 'lines') {
+        return (text === '' ? 0 : text.split(/\r\n|\r|\n/).length).toString()
+    }
+    const words = text.match(/\w+/g) || [] // Counting whitespaces is not enough for word count.
+    return words.length.toString()
+}
+
+
+// Text => Reversed text
+function reverseText(text, by = 'characters') {
+    if (by === 'words') {
+        return text.split(/(\s+)/).reverse().join('') // Keeps the original whitespace between words
+    }
+    if (by === 'lines') {
+        return text.split(/(\r\n|\r|\n)/).reverse().join('')
+    }
+    return Array.from(text).reverse().join('') // Array.from keeps emoji (surrogate pairs) intact
 }
 
 // Text <=> Morse

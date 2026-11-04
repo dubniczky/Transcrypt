@@ -2,4 +2,3 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './main.css'
 import './app.js'
-import './tests.js'

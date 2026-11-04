@@ -24,4 +24,11 @@ export default defineConfig({
     build: {
         target: 'es2022',
     },
+    // Unit tests (npm test). They run in Node and are not part of the built website.
+    // Files that need a DOM opt in with a `// @vitest-environment jsdom` comment.
+    test: {
+        include: ['tests/**/*.test.js'],
+        environment: 'node',
+        reporters: ['tree'], // List every test with its result, grouped by describe block
+    },
 })

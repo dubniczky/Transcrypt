@@ -23,8 +23,9 @@ I made the decision to convert every input format into bytes and convert every o
 
 This seemed like the most manageable solution, so I created two converters for each type. One that converts it to __UInt8Array__ or converts it from __UInt8Array__. Each conversion happens by converting the input to this custom `bytes` object, then converting those bytes to any of the output formats. With this, we can perform modifications on the data both with the input and the output functions. This means that it's possible to, for example, paste a base64 encoded string, convert into bytes, which are then hashed and finally output with hex encoding. All this happens in one go.
 
-- [src/app.js](./src/app.js) contains a list of definitions on what formats can be converted from and to
 - [src/converters.js](./src/converters.js) contains the converters for each custom format
+- [src/formats.js](./src/formats.js) defines the input and output formats and their sidebar options
+- [src/app.js](./src/app.js) wires up the user interface
 
 ## Building
 
@@ -35,15 +36,21 @@ npm install
 npm run dev      # development server with live reload
 npm run build    # creates dist/index.html
 npm run preview  # serves the built dist/ folder
+npm test         # runs the unit tests
 ```
 
 Pushing to `main` builds and deploys `dist/` to GitHub Pages via [.github/workflows/deploy.yml](./.github/workflows/deploy.yml).
 
 ## Testing
 
-The test cases are in [src/tests.js](./src/tests.js). After loading the web page, open the developer console and run:
-```js
-runTests()
+The unit tests use [Vitest](https://vitest.dev) and live in [tests/](./tests). They run in Node, not in the browser, and are not part of the built website.
+
+```bash
+npm test             # run all tests once and list every result
+npm run test:watch   # re-run the tests on every file change
 ```
 
-If there are any errors in the test cases, the details will appear in the console.
+- [tests/conversions.test.js](./tests/conversions.test.js) covers every format, validator and sidebar option. Hashes, HMAC, PBKDF2, CRC32 and ASCII85 are checked against reference values from Python and RFC 6070.
+- [tests/dom.test.js](./tests/dom.test.js) covers the HTML entity decoding, which needs a DOM (jsdom).
+
+The tests also run in the deployment workflow, and a failing test stops the deployment.

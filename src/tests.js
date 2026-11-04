@@ -1,3 +1,6 @@
+import { OptionError, hexToBytes, bytesToHex, b64ToB64Url } from './converters.js'
+import { fromFormats, toFormats, OptionsResolver } from './app.js'
+
 let testRunnerTotalErrors = 0
 
 // Converts like the UI does: options not given use their defaults
@@ -71,11 +74,11 @@ async function assertPbkdf2(input) {
 function runTests() {
     testRunnerTotalErrors = 0
     
-    bHex = '40d810e201413fe363b902d62f48ebce'
-    bB64 = 'QNgQ4gFBP+NjuQLWL0jrzg=='
+    const bHex = '40d810e201413fe363b902d62f48ebce'
+    const bB64 = 'QNgQ4gFBP+NjuQLWL0jrzg=='
 
     // Text
-    aText = 'the little fox JUMPS!!'
+    const aText = 'the little fox JUMPS!!'
     assertEq('utf8', 'hex', aText, '746865206c6974746c6520666f78204a554d50532121')
     assertEq('hex', 'utf8', '746865206c6974746c6520666f78204a554d50532121', aText)
     assertEq('utf8', 'base64', aText, 'dGhlIGxpdHRsZSBmb3ggSlVNUFMhIQ==')
@@ -297,3 +300,6 @@ function runTests() {
         return false
     }
 }
+
+// Run from the browser console: runTests()
+window.runTests = runTests

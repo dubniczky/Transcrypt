@@ -4,22 +4,10 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Transcrypt</title>
-        <link rel="icon" type="image/png" href="favicon.png">
+        <link rel="icon" type="image/png" href="./src/favicon.png">
 
-        <!-- CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="main.css">
-
-        <!-- CDN -->
-        <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
-        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
-        <!-- App -->
-        <script defer src="converters.js"></script>
-        <script defer src="app.js"></script>
-        <script defer src="tests.js"></script>
+        <!-- App: styles, scripts and libraries are bundled (and inlined on build) by Vite -->
+        <script type="module" src="./src/main.js"></script>
     </head>
     <body>
         <div class="d-flex">
@@ -73,11 +61,11 @@
             <div class="flex-grow-1 p-3">
                 <div class="textarea-container mb-3">
                     <label for="input-text" class="form-label">Input <span id="input-size" class="size-label" title="The length of the input in bytes depending on the input formatting.">[0]</span></label>
-                    <textarea id="input-text" class="form-control" placeholder="Enter input here" data-prismjs-language="json"></textarea>
+                    <textarea id="input-text" class="form-control" placeholder="Enter input here"></textarea>
                 </div>
                 <div class="textarea-container">
                     <label for="output-text" class="form-label">Output <span id="output-size" class="size-label" title="The length of the output in bytes depending on the output formatting.">[0]</span></label>
-                    <textarea id="output-text" class="form-control" placeholder="Converted output will appear here" data-prismjs-language="json" readonly></textarea>
+                    <textarea id="output-text" class="form-control" placeholder="Converted output will appear here" readonly></textarea>
                 </div>
             </div>
         </div>

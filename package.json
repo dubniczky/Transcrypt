@@ -1,0 +1,20 @@
+{
+  "name": "transcrypt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fully client-side converter between encodings, hashes and more, built into a single self-contained HTML file.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "bootstrap": "5.0.2",
+    "crypto-js": "4.2.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.5",
+    "vite-plugin-singlefile": "2.3.4"
+  }
+}

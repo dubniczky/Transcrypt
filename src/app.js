@@ -1,3 +1,13 @@
+import {
+    OptionError, utf16ToBytes, bytesToUtf16, hexToBytes, bytesToHex, octalToBytes, bytesToOctal,
+    btextToBytes, bytesToBtext, base32ToBytes, bytesToBase32, htmlentitiesToBytes, bytesToHtmlentities,
+    base64ToBytes, bytesToBase64, formatBase64, b64ToB64Url, b64UrlToB64, binaryToBytes, bytesToBinary,
+    decimalToBytes, bytesToDecimal, bytesToHexDump, hexdumpToBytes, ipv4ToBytes, bytesToIpv4,
+    ipv6ToBytes, bytesToIpv6, iso8601ToBytes, bytesToIso8601, ascii85ToBytes, bytesToAscii85,
+    bytesToMd5, bytesToSha1, bytesToSha256, bytesToSha512, bytesToHmac, bytesToPbkdf2,
+    caesarShift, countText, reverseText, textToMorse, morseToText, bytesToCrc32, decodeJwt, jwtToBytes,
+} from './converters.js'
+
 // Set defaults
 const defaultInputFormat = 'utf8'
 const defaultOutputFormat = 'hex'
@@ -33,7 +43,7 @@ const reverseOptions = [
       choices: [['characters', 'Characters'], ['words', 'Words'], ['lines', 'Lines']] },
 ]
 
-class OptionsResolver {
+export class OptionsResolver {
     // Returns the full options object for a format: raw values (from the sidebar or the URL) merged with defaults.
     // Throws OptionError for invalid values.
     static resolve(format, raw = {}) {
@@ -72,7 +82,7 @@ class OptionsResolver {
 }
 
 
-const fromFormats = {
+export const fromFormats = {
     'utf8': {
         'name': 'Text (UTF-8)',
         'validator': input => true,
@@ -299,7 +309,7 @@ const fromFormats = {
 }
 
 
-const toFormats = {
+export const toFormats = {
     'utf8': {
         'name': 'Text (UTF-8)',
         'convert': input => new TextDecoder().decode(input)

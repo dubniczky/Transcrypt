@@ -23,12 +23,25 @@ I made the decision to convert every input format into bytes and convert every o
 
 This seemed like the most manageable solution, so I created two converters for each type. One that converts it to __UInt8Array__ or converts it from __UInt8Array__. Each conversion happens by converting the input to this custom `bytes` object, then converting those bytes to any of the output formats. With this, we can perform modifications on the data both with the input and the output functions. This means that it's possible to, for example, paste a base64 encoded string, convert into bytes, which are then hashed and finally output with hex encoding. All this happens in one go.
 
-- [app.js](./app.js) contains a list of definitions on what formats can be converted from and to
-- [converters.js](./converters.js) contains the converters for each custom format
+- [src/app.js](./src/app.js) contains a list of definitions on what formats can be converted from and to
+- [src/converters.js](./src/converters.js) contains the converters for each custom format
+
+## Building
+
+The app is built with [Vite](https://vite.dev) and [vite-plugin-singlefile](https://github.com/richardtallent/vite-plugin-singlefile) into **one self-contained HTML file**. The JavaScript, CSS, favicon and libraries (Bootstrap CSS, CryptoJS) are all inlined, so the page makes no network requests. It can be shared as a single file and opened offline.
+
+```bash
+npm install
+npm run dev      # development server with live reload
+npm run build    # creates dist/index.html
+npm run preview  # serves the built dist/ folder
+```
+
+Pushing to `main` builds and deploys `dist/` to GitHub Pages via [.github/workflows/deploy.yml](./.github/workflows/deploy.yml).
 
 ## Testing
 
-The test cases are in [tests.js](./tests.js). After loading the web page, open the developer console and run:
+The test cases are in [src/tests.js](./src/tests.js). After loading the web page, open the developer console and run:
 ```js
 runTests()
 ```

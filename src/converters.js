@@ -4,9 +4,17 @@
 // All of the inputs are converted to bytes, then converted to the desired output
 // For CryptoJS, we convert the bytes to WordArray, then convert the WordArray to the desired output
 
+// Only the CryptoJS modules that are used get bundled (each one registers itself on the shared core object)
+import CryptoJS from 'crypto-js/core'
+import 'crypto-js/x64-core'
+import 'crypto-js/md5'
+import 'crypto-js/sha1'
+import 'crypto-js/sha256'
+import 'crypto-js/sha512'
+import 'crypto-js/hmac'
 
 // Thrown when a format option (sidebar field) has an invalid value, so the UI can highlight that field
-class OptionError extends Error {
+export class OptionError extends Error {
     constructor(optionId, message) {
         super(message)
         this.optionId = optionId
@@ -15,7 +23,7 @@ class OptionError extends Error {
 
 
 // Text <=> Bytes (UTF-16, code unit by code unit, so surrogate pairs are preserved)
-function utf16ToBytes(text, littleEndian = true, addBom = false) {
+export function utf16ToBytes(text, littleEndian = true, addBom = false) {
     const bytes = []
     if (addBom) {
         text = '﻿' + text
@@ -33,7 +41,7 @@ function utf16ToBytes(text, littleEndian = true, addBom = false) {
     return new Uint8Array(bytes)
 }
 
-function bytesToUtf16(bytes, littleEndian = true, useBom = false) {
+export function bytesToUtf16(bytes, littleEndian = true, useBom = false) {
     let start = 0
     // A byte order mark overrides the selected byte order
     if (useBom && bytes.length >= 2) {
@@ -55,7 +63,7 @@ function bytesToUtf16(bytes, littleEndian = true, useBom = false) {
 }
 
 // WordArray (CryptoJS) <=> Bytes
-function wordarrayToBytes(wordArray) {
+export function wordarrayToBytes(wordArray) {
     const words = wordArray.words
     const sigBytes = wordArray.sigBytes
     const bytes = []
@@ -68,7 +76,7 @@ function wordarrayToBytes(wordArray) {
 
     return bytes
 }
-function bytesToWordarray(u8Array) {
+export function bytesToWordarray(u8Array) {
     const words = []
     for (let i = 0; i < u8Array.length; i += 4) {
         words.push(
@@ -83,7 +91,7 @@ function bytesToWordarray(u8Array) {
 
 
 // Hex <=> Bytes
-function hexToBytes(hex) {
+export function hexToBytes(hex) {
     if (!/^([0-9a-fA-F]{2})*$/.test(hex)) {
         throw new Error('Invalid hex string')
     }
@@ -93,7 +101,7 @@ function hexToBytes(hex) {
     }
     return bytes
 }
-function bytesToHex(bytes) {
+export function bytesToHex(bytes) {
     let hex = ''
     for (let i = 0; i < bytes.length; i++) {
         hex += ('0' + bytes[i].toString(16)).slice(-2)
@@ -103,7 +111,7 @@ function bytesToHex(bytes) {
 
 
 // Octal <=> Bytes
-function octalToBytes(octal) {
+export function octalToBytes(octal) {
     if (!/^([0-7]{3})*$/.test(octal)) {
         throw new Error('Invalid octal string')
     }
@@ -117,7 +125,7 @@ function octalToBytes(octal) {
     }
     return bytes
 }
-function bytesToOctal(bytes) {
+export function bytesToOctal(bytes) {
     let octal = ''
     for (let i = 0; i < bytes.length; i++) {
         octal += ('000' + bytes[i].toString(8)).slice(-3)
@@ -128,7 +136,7 @@ function bytesToOctal(bytes) {
 
 // Byte Array (text) <=> bytes
 // Accepts "1 2 3", "1,2,3", "1, 2, 3" and "[1, 2, 3]"
-function btextToBytes(btext) {
+export function btextToBytes(btext) {
     btext = btext.trim()
     if (btext.startsWith('[') && btext.endsWith(']')) {
         btext = btext.slice(1, -1).trim()
@@ -146,16 +154,16 @@ function btextToBytes(btext) {
     }
     return bytes
 }
-const byteArraySeparators = { 'space': ' ', 'comma': ',', 'commaspace': ', ' }
-function bytesToBtext(bytes, separator = 'space', brackets = false) {
+export const byteArraySeparators = { 'space': ' ', 'comma': ',', 'commaspace': ', ' }
+export function bytesToBtext(bytes, separator = 'space', brackets = false) {
     const text = Array.from(bytes).join(byteArraySeparators[separator] ?? ' ')
     return brackets ? `[${text}]` : text
 }
 
 
 // Base32 <=> Bytes
-const base32EncodingAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-function base32ToBytes(base32) {
+export const base32EncodingAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+export function base32ToBytes(base32) {
     const bytes = []
     let buffer = 0
     let bitsLeft = 0
@@ -180,7 +188,7 @@ function base32ToBytes(base32) {
 
     return new Uint8Array(bytes)
 }
-function bytesToBase32(bytes, padding = true) {
+export function bytesToBase32(bytes, padding = true) {
     
     let base32 = ''
     let buffer = 0
@@ -209,7 +217,7 @@ function bytesToBase32(bytes, padding = true) {
 
 
 // HTML Entities <=> Bytes
-function htmlentitiesToBytes(htmlentities) {
+export function htmlentitiesToBytes(htmlentities) {
     // Decode named (&amp;), decimal (&#65;) and hex (&#x41;) entities.
     // A detached <textarea> parses its content as text, so no markup is created or executed.
     const decoder = document.createElement('textarea')
@@ -221,7 +229,7 @@ function htmlentitiesToBytes(htmlentities) {
     }
     return bytes
 }
-function bytesToHtmlentities(bytes) {
+export function bytesToHtmlentities(bytes) {
     const text = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '')
     return text.replace(/[\u00A0-\u9999<>&"']/gim, function(char) {
         return `&#${char.charCodeAt(0)};`
@@ -230,7 +238,7 @@ function bytesToHtmlentities(bytes) {
 
 
 // Base64 <=> Bytes
-function base64ToBytes(base64) {
+export function base64ToBytes(base64) {
     const binaryString = atob(base64)
     const len = binaryString.length
     const bytes = new Uint8Array(len)
@@ -239,7 +247,7 @@ function base64ToBytes(base64) {
     }
     return bytes
 }
-function bytesToBase64(bytes) {
+export function bytesToBase64(bytes) {
     let binaryString = ''
     for (let i = 0; i < bytes.length; i++) {
         binaryString += String.fromCharCode(bytes[i])
@@ -249,7 +257,7 @@ function bytesToBase64(bytes) {
 
 
 // Base64 formatting options
-function formatBase64(base64, padding = true, wrap = 0) {
+export function formatBase64(base64, padding = true, wrap = 0) {
     if (!padding) {
         base64 = base64.replace(/=+$/, '')
     }
@@ -261,19 +269,19 @@ function formatBase64(base64, padding = true, wrap = 0) {
 
 
 // Base64 <=> Base64URL
-function b64ToB64Url(base64, padding = false) {
+export function b64ToB64Url(base64, padding = false) {
     if (!padding) {
         base64 = base64.replace(/=+$/, '')
     }
     return base64.replace(/\+/g, '-').replace(/\//g, '_')
 }
-function b64UrlToB64(base64url) {
+export function b64UrlToB64(base64url) {
     return base64url.replace(/-/g, '+').replace(/_/g, '/')
 }
 
 
 // Binary (text) <=> Bytes
-function binaryToBytes(binary) {
+export function binaryToBytes(binary) {
     binary = binary.replace(/\s+/g, '') // Remove all spaces
     let length = binary.length - (binary.length % 8) // Ignore extra bits at the end
 
@@ -283,7 +291,7 @@ function binaryToBytes(binary) {
     }
     return bytes
 }
-function bytesToBinary(bytes) {
+export function bytesToBinary(bytes) {
     let binary = ''
     for (let i = 0; i < bytes.length; i++) {
         binary += bytes[i].toString(2).padStart(8, '0')
@@ -292,7 +300,7 @@ function bytesToBinary(bytes) {
 }
 
 // Big int (text) <=> Bytes
-function decimalToBytes(decimal, littleEndian = false) {
+export function decimalToBytes(decimal, littleEndian = false) {
     decimal = decimal.trim()
     if (decimal === '') {
         return new Uint8Array(0)
@@ -307,7 +315,7 @@ function decimalToBytes(decimal, littleEndian = false) {
     const bytes = hexToBytes(hex)
     return littleEndian ? bytes.reverse() : bytes
 }
-function bytesToDecimal(bytes, littleEndian = false) {
+export function bytesToDecimal(bytes, littleEndian = false) {
     if (bytes.length === 0) {
         return ''
     }
@@ -319,7 +327,7 @@ function bytesToDecimal(bytes, littleEndian = false) {
 
 
 // Hexdump <=> Bytes
-function bytesToHexDump(bytes, lineSize = 16, showAscii = true) {
+export function bytesToHexDump(bytes, lineSize = 16, showAscii = true) {
     let hexDump = ''
 
     for (let i = 0; i < bytes.length; i += lineSize) {
@@ -340,7 +348,7 @@ function bytesToHexDump(bytes, lineSize = 16, showAscii = true) {
     return hexDump.trim()
 }
 // Parses whitespace-separated hex tokens ("de", "dead", ...) into bytes, or returns null if any token is invalid
-function parseHexdumpTokens(region) {
+export function parseHexdumpTokens(region) {
     const bytes = []
     for (const token of region.trim().split(/\s+/)) {
         if (token === '') continue
@@ -354,7 +362,7 @@ function parseHexdumpTokens(region) {
     return bytes
 }
 // Supports this tool's own format, `xxd` ("00000000: 6865 6c6c  hell") and `hexdump -C` ("00000000  68 65  |he|")
-function hexdumpToBytes(hexdump) {
+export function hexdumpToBytes(hexdump) {
     const bytes = []
 
     for (let line of hexdump.split(/\r?\n/)) {
@@ -390,7 +398,7 @@ function hexdumpToBytes(hexdump) {
 
 
 // IPv4 Address <=> Bytes
-function ipv4ToBytes(ipv4) {
+export function ipv4ToBytes(ipv4) {
     const parts = ipv4.split('.')
     if (parts.length !== 4) {
         throw new Error('Invalid IPv4 address')
@@ -404,7 +412,7 @@ function ipv4ToBytes(ipv4) {
     }
     return bytes
 }
-function bytesToIpv4(bytes) {
+export function bytesToIpv4(bytes) {
     if (bytes.length !== 4) {
         return 'Invalid IPv4 length! 4 bytes required. Current: ' + bytes.length
     }
@@ -417,7 +425,7 @@ function bytesToIpv4(bytes) {
  * @param {string} ipv6
  * @returns {Uint8Array}
  */
-function ipv6ToBytes(ipv6) {
+export function ipv6ToBytes(ipv6) {
     // Uncompress IPv6 address from '::' format
     const parts = ipv6.split('::')
 
@@ -453,7 +461,7 @@ function ipv6ToBytes(ipv6) {
     }
     return bytes
 }
-function bytesToIpv6(bytes, compress = true) {
+export function bytesToIpv6(bytes, compress = true) {
     if (bytes.length !== 16) {
         return 'Invalid IPv6 length! 16 bytes required. Current: ' + bytes.length
     }
@@ -512,14 +520,14 @@ function bytesToIpv6(bytes, compress = true) {
 
 
 // ISO 8601 Time <=> Bytes
-function iso8601ToBytes(iso8601) {
+export function iso8601ToBytes(iso8601) {
     const date = new Date(iso8601)
     if (isNaN(date.getTime())) {
         throw new Error('Invalid ISO 8601 date string')
     }
     return new Uint8Array(date.getTime().toString().split('').map(Number))
 }
-function bytesToIso8601(bytes) {
+export function bytesToIso8601(bytes) {
     const timestamp = bytes.reduce((acc, byte) => acc + byte, '')
     const date = new Date(Number(timestamp))
     return date.toISOString()
@@ -527,7 +535,7 @@ function bytesToIso8601(bytes) {
 
 
 // Ascii85 <=> Bytes
-function ascii85ToBytes(input) {
+export function ascii85ToBytes(input) {
     let cleaned = input.replace(/\s+/g, '')
     // Optional Adobe-style delimiters
     if (cleaned.startsWith('<~')) cleaned = cleaned.slice(2)
@@ -579,7 +587,7 @@ function ascii85ToBytes(input) {
     return new Uint8Array(output)
 }
 
-function bytesToAscii85(bytes) {
+export function bytesToAscii85(bytes) {
     let result = ''
 
     for (let i = 0; i < bytes.length; i += 4) {
@@ -611,25 +619,25 @@ function bytesToAscii85(bytes) {
 
 
 // Bytes => Hashes
-function bytesToMd5(bytes) {
+export function bytesToMd5(bytes) {
     return CryptoJS.MD5(bytesToWordarray(bytes)).toString()
 }
 
-function bytesToSha1(bytes) {
+export function bytesToSha1(bytes) {
     return CryptoJS.SHA1(bytesToWordarray(bytes)).toString()
 }
 
-function bytesToSha256(bytes) {
+export function bytesToSha256(bytes) {
     return CryptoJS.SHA256(bytesToWordarray(bytes)).toString()
 }
 
-function bytesToSha512(bytes) {
+export function bytesToSha512(bytes) {
     return CryptoJS.SHA512(bytesToWordarray(bytes)).toString()
 }
 
 // Bytes => HMAC (keyed hash). The key is used as UTF-8 text.
-const hmacAlgorithms = ['MD5', 'SHA1', 'SHA256', 'SHA512']
-function bytesToHmac(bytes, algorithm = 'SHA256', key = '') {
+export const hmacAlgorithms = ['MD5', 'SHA1', 'SHA256', 'SHA512']
+export function bytesToHmac(bytes, algorithm = 'SHA256', key = '') {
     if (!hmacAlgorithms.includes(algorithm)) {
         throw new OptionError('algorithm', 'Unsupported HMAC algorithm: ' + algorithm)
     }
@@ -641,7 +649,7 @@ function bytesToHmac(bytes, algorithm = 'SHA256', key = '') {
 
 // Uses WebCrypto (runs off the main thread, so the UI does not freeze). Returns a Promise; the app awaits it.
 // An empty salt means a random 16-byte salt.
-async function bytesToPbkdf2(bytes, hash = 'SHA-256', iterations = 350000, keyLength = 256, saltHex = '', output = 'full') {
+export async function bytesToPbkdf2(bytes, hash = 'SHA-256', iterations = 350000, keyLength = 256, saltHex = '', output = 'full') {
     if (!['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'].includes(hash)) {
         throw new OptionError('hash', 'Unsupported PBKDF2 hash: ' + hash)
     }
@@ -678,7 +686,7 @@ async function bytesToPbkdf2(bytes, hash = 'SHA-256', iterations = 350000, keyLe
 // Caesar cipher / ROT-N over a custom alphabet (works on Unicode text).
 // Characters not in the alphabet are kept, except that the other-case version of an alphabet
 // letter is shifted as well and keeps its case (so 'a-z' also rotates 'A-Z').
-function caesarShift(text, shift = 13, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
+export function caesarShift(text, shift = 13, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
     const letters = Array.from(alphabet)
     if (letters.length === 0) {
         throw new OptionError('alphabet', 'The alphabet must not be empty')
@@ -708,7 +716,7 @@ function caesarShift(text, shift = 13, alphabet = 'abcdefghijklmnopqrstuvwxyz') 
 
 
 // Text => Count
-function countText(bytes, mode = 'words') {
+export function countText(bytes, mode = 'words') {
     if (mode === 'bytes') {
         return bytes.length.toString()
     }
@@ -725,7 +733,7 @@ function countText(bytes, mode = 'words') {
 
 
 // Text => Reversed text
-function reverseText(text, by = 'characters') {
+export function reverseText(text, by = 'characters') {
     if (by === 'words') {
         return text.split(/(\s+)/).reverse().join('') // Keeps the original whitespace between words
     }
@@ -736,7 +744,7 @@ function reverseText(text, by = 'characters') {
 }
 
 // Text <=> Morse
-morseAlphabet = {
+export const morseAlphabet = {
     'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
     'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
     'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
@@ -747,10 +755,10 @@ morseAlphabet = {
     ' ': '/'
 }
 
-function textToMorse(text) {
+export function textToMorse(text) {
     return text.toUpperCase().split('').map(char => morseAlphabet[char] || '').join(' ')
 }
-function morseToText(morse) {
+export function morseToText(morse) {
     morse = morse.trim()
     if (morse === '') {
         return ''
@@ -761,7 +769,7 @@ function morseToText(morse) {
 
 
 // Bytes => CRC32
-function bytesToCrc32(bytes) {
+export function bytesToCrc32(bytes) {
     const table = new Uint32Array(256)
 
     // Generate the CRC32 table
@@ -788,7 +796,7 @@ function bytesToCrc32(bytes) {
 // JWT => Bytes (decoding only: the signature is NOT verified)
 // Produces pretty-printed JSON text with the decoded header, payload and the raw signature,
 // plus human-readable dates for the registered time claims (iat, nbf, exp).
-function jwtSegmentToJson(segment, name) {
+export function jwtSegmentToJson(segment, name) {
     if (!/^[A-Za-z0-9_-]+$/.test(segment)) {
         throw new Error(`Invalid JWT ${name}: not Base64 URL`)
     }
@@ -800,7 +808,7 @@ function jwtSegmentToJson(segment, name) {
     return json
 }
 
-function decodeJwt(token) {
+export function decodeJwt(token) {
     token = token.trim().replace(/^Bearer\s+/i, '')
     const parts = token.split('.')
     if (parts.length === 5) {
@@ -840,6 +848,6 @@ function decodeJwt(token) {
     return result
 }
 
-function jwtToBytes(token) {
+export function jwtToBytes(token) {
     return new TextEncoder().encode(JSON.stringify(decodeJwt(token), null, 2))
 }
